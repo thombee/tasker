@@ -1,16 +1,19 @@
-const { app, BrowserWindow, ipcMain, net, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, session, shell } = require('electron');
 const path = require('path');
 
 // Outbound park ping on behalf of the renderer. No CORS/preflight here,
-// and Chromium's stack handles system proxies the way the browser does.
+// Chromium's stack handles system proxies the way the browser does, and
+// using the default session's cookies means a corporate filter sign-in
+// (e.g. Zscaler) completed in-app carries over to pings.
 ipcMain.handle('tasker:ping', async (_event, url, init) => {
   try {
     if (typeof url !== 'string' || !/^https:\/\//i.test(url)) {
       return { status: 0, body: 'invalid url' };
     }
     const method = init && init.method === 'GET' ? 'GET' : 'POST';
-    const response = await net.fetch(url, {
+    const response = await session.defaultSession.fetch(url, {
       method,
+      credentials: 'include',
       headers: init && typeof init.headers === 'object' ? init.headers : {},
       body:
         method === 'POST' && init && typeof init.body === 'string'
@@ -22,6 +25,21 @@ ipcMain.handle('tasker:ping', async (_event, url, init) => {
   } catch (err) {
     return { status: 0, body: String(err).slice(0, 300) };
   }
+});
+
+// Opens a normal in-app window so the user can complete their network
+// filter's sign-in (the session cookie then applies to pings). Restricted
+// to https URLs.
+ipcMain.handle('tasker:open-auth', (_event, url) => {
+  if (typeof url !== 'string' || !/^https:\/\//i.test(url)) return false;
+  const authWindow = new BrowserWindow({
+    width: 900,
+    height: 700,
+    title: 'network sign-in',
+    webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true },
+  });
+  authWindow.loadURL(url);
+  return true;
 });
 
 function createWindow() {

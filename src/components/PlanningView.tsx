@@ -1,6 +1,11 @@
 import { ChangeEvent, Dispatch, useRef, useState } from 'react';
 import { FileBackup } from '../hooks/useFileBackup';
-import { getPhoneTopic, savePhoneTopic, sendParkPingDetailed } from '../model/phonePing';
+import {
+  getPhoneTopic,
+  pingUrl,
+  savePhoneTopic,
+  sendParkPingDetailed,
+} from '../model/phonePing';
 import { Action } from '../model/store';
 import { AppState } from '../model/types';
 import TreeNode from './TreeNode';
@@ -166,6 +171,23 @@ export default function PlanningView({ state, dispatch, backup }: Props) {
           <button className="ghost" disabled={!phoneTopic.trim()} onClick={sendTestPing}>
             Send test
           </button>
+          {window.taskerNative && (
+            <button
+              className="ghost"
+              disabled={!phoneTopic.trim()}
+              title="If your company network intercepts with a sign-in page (e.g. Zscaler), open it here and log in — the session then applies to pings"
+              onClick={() => {
+                try {
+                  const origin = new URL(pingUrl(phoneTopic)).origin;
+                  void window.taskerNative?.openAuth(origin);
+                } catch {
+                  // Malformed URL in the field — nothing to open.
+                }
+              }}
+            >
+              Network sign-in
+            </button>
+          )}
         </div>
         {pingStatus && <p className="muted small">{pingStatus}</p>}
       </div>

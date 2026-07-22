@@ -6,4 +6,5 @@ const { contextBridge, ipcRenderer } = require('electron');
 // matters behind corporate proxies.
 contextBridge.exposeInMainWorld('taskerNative', {
   ping: (url, init) => ipcRenderer.invoke('tasker:ping', url, init),
+  openAuth: (url) => ipcRenderer.invoke('tasker:open-auth', url),
 });

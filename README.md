@@ -142,8 +142,14 @@ The topic is stored per device — set it on each machine you use.
 Slack / Teams / Discord **webhook URL** (e.g. `https://hooks.slack.com/…`)
 and sends the right payload automatically — useful when a corporate proxy
 blocks ntfy. In the desktop app, pings are sent from Electron's main
-process (Chromium network stack, no CORS preflight), which behaves like
-the browser and survives proxies that break in-page requests.
+process using the app session's cookies (Chromium network stack, no CORS
+preflight, GET query-param publishing for ntfy). If your company filter
+(e.g. **Zscaler**) intercepts with an authentication page — the test
+reports something like `HTTP 200 — …Authentication…` — click
+**Network sign-in** next to Send test: it opens the destination inside
+the app, you complete your normal SSO once, and the session cookie then
+covers pings. That's the same sign-in your browser does; re-do it if the
+filter expires the session.
 
 ## Deliberate design decisions
 
