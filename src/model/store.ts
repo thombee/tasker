@@ -1,3 +1,4 @@
+import { findCurrent, goalOf } from './traversal';
 import { AppState, HistoryEntry, Task, TaskStatus } from './types';
 
 const STORAGE_KEY = 'tasker.state.v1';
@@ -15,6 +16,7 @@ export type Action =
   | { type: 'addChild'; parentId: string | null; title: string }
   | { type: 'breakDown'; id: string; titles: string[] }
   | { type: 'capture'; title: string }
+  | { type: 'nextGoal' }
   | { type: 'done'; id: string }
   | { type: 'skip'; id: string }
   | { type: 'undo' }
@@ -112,6 +114,22 @@ export function reducer(state: AppState, action: Action): AppState {
         };
       }
       return reducer(next, { type: 'addChild', parentId: inboxId, title });
+    }
+
+    case 'nextGoal': {
+      // Move on to the next goal without skipping anything: the current
+      // goal rotates to the back of the journey, statuses untouched.
+      const currentId = findCurrent(state);
+      if (!currentId) return state;
+      const goalId = goalOf(state, currentId).id;
+      const rootIds = state.rootIds.filter((id) => id !== goalId);
+      const inboxIndex =
+        state.inboxId && state.inboxId !== goalId
+          ? rootIds.indexOf(state.inboxId)
+          : -1;
+      if (inboxIndex >= 0) rootIds.splice(inboxIndex, 0, goalId);
+      else rootIds.push(goalId);
+      return { ...state, rootIds };
     }
 
     case 'done': {

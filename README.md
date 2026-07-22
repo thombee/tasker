@@ -85,16 +85,23 @@ tools for externalized working memory:
   scoped to the current *goal*, editable without leaving the current task.
   Where things are, decisions made, where you left off.
 - **Quick capture** (`c` or "+ capture"): a one-line input for stray
-  thoughts ("reply to that email"). The thought is filed into an **Inbox**
-  goal at the end of your journey and you stay on the current task. The
-  Inbox surfaces naturally once your other goals are done.
+  thoughts ("reply to that email"). Enter files it into an **Inbox** goal
+  at the end of your journey; **shift-Enter files it as an upcoming step
+  of the goal you're inside** — for research tangents that belong right
+  here ("do pothos need drainage holes?"). Either way you stay on the
+  current task.
 - **"part of" line**: the current task shows its immediate parent when
   that adds context beyond the goal name — the one deliberate hierarchy leak.
 - **Recent trail**: your last three finished steps, so re-entry after a
   break means rereading your own momentum instead of reconstructing it.
 
-Keyboard shortcuts in execution mode: `d`/`Enter` done · `b` too big ·
-`s` skip · `z` previous · `n` notes · `c` capture.
+- **Switch goal** (`g` or "switch goal →", shown when another goal has
+  work left): moves on to the next goal *without skipping anything* — the
+  current goal just rotates to the back of the journey and will come
+  around again.
+
+Keyboard shortcuts in execution mode: `d`/`Enter` done · `b` break down ·
+`s` skip · `z` previous · `n` notes · `c` capture · `g` switch goal.
 
 ### Journal
 
@@ -110,9 +117,9 @@ in the footer.
 
 - **Parents are never auto-completed.** Subtasks are often just the *next*
   steps, not the whole job — breaking down lazily is the intended workflow.
-  So when a task's children are all handled, the task itself surfaces as
-  the current task and asks "done, or is there more?" — press Done to
-  confirm it, or Too Big to feed it the next steps you now know about.
+  When a task's children are all handled it surfaces in a distinct
+  **"Wrapping up"** state with its own buttons: **✓ Finished** confirms
+  it, **+ More steps** feeds it the next steps you now know about.
 - **No percentages, no overdue badges, no counts.** Progress is narrative:
   what goal you're in, what step you're on, what you just finished.
 - **Manual breakdown only** (for now). Pressing Too Big asks *you* for the

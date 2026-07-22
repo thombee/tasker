@@ -103,6 +103,10 @@ button:disabled {
   font-size: 0.72rem;
 }
 
+.label-wrap {
+  color: var(--accent);
+}
+
 .current-card {
   animation: rise 0.35s ease;
 }
@@ -294,7 +298,9 @@ button:disabled {
 
 .capture {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
   animation: rise 0.2s ease;
 }
 

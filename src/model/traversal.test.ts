@@ -182,6 +182,34 @@ describe('quick capture', () => {
   });
 });
 
+describe('nextGoal', () => {
+  it('rotates to the following goal without changing any statuses', () => {
+    let state = apply(buildJourney(), { type: 'addGoal', title: 'SuccessFactors Review' });
+    state = apply(state, { type: 'nextGoal' });
+    expect(findCurrent(state)).toBe(idOf(state, 'SuccessFactors Review'));
+    expect(state.tasks[idOf(state, 'Open endpoint file')].status).toBe('todo');
+    // Cycles back around.
+    state = apply(state, { type: 'nextGoal' });
+    expect(findCurrent(state)).toBe(idOf(state, 'Open endpoint file'));
+  });
+
+  it('keeps the Inbox as the last goal when rotating', () => {
+    let state = apply(
+      buildJourney(),
+      { type: 'capture', title: 'a thought' },
+      { type: 'addGoal', title: 'Review' },
+    );
+    state = apply(state, { type: 'nextGoal' });
+    expect(findCurrent(state)).toBe(idOf(state, 'Review'));
+    expect(state.rootIds[state.rootIds.length - 1]).toBe(state.inboxId);
+  });
+
+  it('is a no-op with a single active goal', () => {
+    const state = buildJourney();
+    expect(apply(state, { type: 'nextGoal' }).rootIds).toEqual(state.rootIds);
+  });
+});
+
 describe('planning edits', () => {
   it('reopening a task reopens its done ancestors', () => {
     let state = buildJourney();

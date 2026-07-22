@@ -87,6 +87,7 @@ export default function ExecutionView({ state, dispatch, onOpenPlan, backupPause
       else if (e.key === 's') dispatch({ type: 'skip', id: current.id });
       else if (e.key === 'z' && canUndo) dispatch({ type: 'undo' });
       else if (e.key === 'n') setScratchOpen((open) => !open);
+      else if (e.key === 'g') dispatch({ type: 'nextGoal' });
       else if (e.key === 'c') {
         e.preventDefault();
         setCaptureOpen(true);
@@ -117,6 +118,10 @@ export default function ExecutionView({ state, dispatch, onOpenPlan, backupPause
 
   const parent = current.parentId ? state.tasks[current.parentId] : null;
 
+  // "Switch goal" only makes sense when another goal still has work left.
+  const canSwitchGoal =
+    state.rootIds.filter((id) => remainingSteps(state, id) > 0).length > 1;
+
   // Goal-gradient nudge: say so when this is the last remaining step of a
   // stretch or of the whole goal — narrative, never a number.
   const lastOfGoal =
@@ -144,10 +149,17 @@ export default function ExecutionView({ state, dispatch, onOpenPlan, backupPause
     setSteps('');
   }
 
-  function submitCapture() {
+  function submitCapture(destination: 'inbox' | 'goal') {
     if (captureText.trim()) {
-      dispatch({ type: 'capture', title: captureText });
-      setToast('Saved to Inbox — keep going');
+      if (destination === 'goal' && goal) {
+        // A tangent that belongs to the goal you're inside becomes one of
+        // its upcoming steps — no trip to Planning mode.
+        dispatch({ type: 'addChild', parentId: goal.id, title: captureText });
+        setToast(`Added as a step in: ${goal.title}`);
+      } else {
+        dispatch({ type: 'capture', title: captureText });
+        setToast('Saved to Inbox — keep going');
+      }
     }
     setCaptureText('');
     setCaptureOpen(false);
@@ -161,7 +173,9 @@ export default function ExecutionView({ state, dispatch, onOpenPlan, backupPause
         </div>
       )}
       <div className="current-card" key={current.id}>
-        <p className="label">Current</p>
+        <p className={isSurfacedParent ? 'label label-wrap' : 'label'}>
+          {isSurfacedParent ? 'Wrapping up' : 'Current'}
+        </p>
         {editingTitle ? (
           <input
             autoFocus
@@ -206,8 +220,7 @@ export default function ExecutionView({ state, dispatch, onOpenPlan, backupPause
         {isSurfacedParent && (
           <p className="muted small">
             Every step inside is handled
-            {skippedInside > 0 && ` (${skippedInside} skipped)`} — done, or is
-            there more?
+            {skippedInside > 0 && ` (${skippedInside} skipped)`}.
           </p>
         )}
       </div>
@@ -215,7 +228,9 @@ export default function ExecutionView({ state, dispatch, onOpenPlan, backupPause
       {breakingDown ? (
         <div className="breakdown">
           <p className="muted small">
-            What's the very first physical action? One tiny step per line.
+            {isSurfacedParent
+              ? "What's still left? One step per line."
+              : "What's the very first physical action? One tiny step per line."}
           </p>
           <textarea
             autoFocus
@@ -243,10 +258,10 @@ export default function ExecutionView({ state, dispatch, onOpenPlan, backupPause
             ← Previous
           </button>
           <button className="primary" onClick={() => dispatch({ type: 'done', id: current.id })}>
-            Done
+            {isSurfacedParent ? '✓ Finished' : 'Done'}
           </button>
           <button className="secondary" onClick={() => setBreakingDown(true)}>
-            Too Big
+            {isSurfacedParent ? '+ More steps' : 'Too Big'}
           </button>
           <button className="ghost" onClick={() => dispatch({ type: 'skip', id: current.id })}>
             Skip
@@ -294,11 +309,12 @@ export default function ExecutionView({ state, dispatch, onOpenPlan, backupPause
             onChange={(e) => setCaptureText(e.target.value)}
             onBlur={() => setCaptureOpen(false)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') submitCapture();
+              if (e.key === 'Enter') submitCapture(e.shiftKey ? 'goal' : 'inbox');
               if (e.key === 'Escape') setCaptureOpen(false);
             }}
-            placeholder="Stray thought — it goes to your Inbox, you stay here…"
+            placeholder="Stray thought — capture it, stay here…"
           />
+          <p className="keys muted">↵ to Inbox · shift-↵ step in this goal</p>
         </div>
       )}
 
@@ -332,12 +348,21 @@ export default function ExecutionView({ state, dispatch, onOpenPlan, backupPause
           <button className="link" onClick={() => setCaptureOpen(true)}>
             + capture
           </button>
+          {canSwitchGoal && (
+            <button
+              className="link"
+              title="Move on to the next goal — nothing gets skipped"
+              onClick={() => dispatch({ type: 'nextGoal' })}
+            >
+              switch goal →
+            </button>
+          )}
         </div>
         <p className="quote">
           “{quote.text}”{quote.author && <span className="muted"> — {quote.author}</span>}
         </p>
         <p className="keys muted">
-          d done · b too big · s skip · z previous · n notes · c capture
+          d done · b break down · s skip · z previous · n notes · c capture · g goal
         </p>
         {backupPaused && (
           <p className="keys muted">file backup paused — open Plan to reconnect</p>
