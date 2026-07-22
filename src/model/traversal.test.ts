@@ -152,11 +152,11 @@ describe('breakDown', () => {
 });
 
 describe('quick capture', () => {
-  it('creates an Inbox goal on first capture and appends thoughts', () => {
+  it('creates a Backlog goal on first capture and appends thoughts', () => {
     let state = apply(buildJourney(), { type: 'capture', title: 'Email Sarah back' });
     expect(state.inboxId).toBeTruthy();
     const inbox = state.tasks[state.inboxId!];
-    expect(inbox.title).toBe('Inbox');
+    expect(inbox.title).toBe('Backlog');
     expect(inbox.parentId).toBeNull();
     expect(inbox.childIds).toHaveLength(1);
     state = apply(state, { type: 'capture', title: 'Book dentist' });
@@ -222,6 +222,91 @@ describe('park', () => {
     let state = apply(buildJourney(), { type: 'park', note: '' });
     state = apply(state, { type: 'done', id: idOf(state, 'Open endpoint file') });
     expect(state.parked).toBeNull();
+  });
+});
+
+describe('reparenting', () => {
+  function ids(state: AppState, title: string) {
+    return idOf(state, title);
+  }
+
+  it('indent nests a task under the sibling above it', () => {
+    let state = buildJourney();
+    // Implement frontend is a sibling of Implement backend under BigW Ticket.
+    state = apply(state, { type: 'indent', id: ids(state, 'Implement frontend') });
+    const frontend = state.tasks[ids(state, 'Implement frontend')];
+    expect(frontend.parentId).toBe(ids(state, 'Implement backend'));
+    expect(state.tasks[ids(state, 'Implement backend')].childIds).toContain(
+      frontend.id,
+    );
+  });
+
+  it('indent is a no-op for the first sibling', () => {
+    const state = buildJourney();
+    const next = apply(state, { type: 'indent', id: ids(state, 'Open endpoint file') });
+    expect(next).toBe(state);
+  });
+
+  it('outdent lifts a task to sit after its parent', () => {
+    let state = buildJourney();
+    state = apply(state, { type: 'outdent', id: ids(state, 'Add parameter') });
+    const param = state.tasks[ids(state, 'Add parameter')];
+    // Was under Implement backend; now a sibling of it under BigW Ticket.
+    expect(param.parentId).toBe(ids(state, 'BigW Ticket'));
+    const goalKids = state.tasks[ids(state, 'BigW Ticket')].childIds;
+    const backendIdx = goalKids.indexOf(ids(state, 'Implement backend'));
+    expect(goalKids[backendIdx + 1]).toBe(param.id);
+  });
+
+  it('outdent at the top level promotes a Backlog item into its own goal', () => {
+    let state = apply(buildJourney(), { type: 'capture', title: 'Water the plants' });
+    const item = ids(state, 'Water the plants');
+    state = apply(state, { type: 'outdent', id: item });
+    expect(state.tasks[item].parentId).toBeNull();
+    expect(state.rootIds).toContain(item);
+    // Backlog stays last even though the promoted goal was inserted after it.
+    expect(state.rootIds[state.rootIds.length - 1]).toBe(state.inboxId);
+  });
+
+  it('reparent refuses to move a task into its own descendant', () => {
+    const state = buildJourney();
+    const next = apply(state, {
+      type: 'reparent',
+      id: ids(state, 'Implement backend'),
+      parentId: ids(state, 'Open endpoint file'),
+    });
+    expect(next).toBe(state);
+  });
+
+  it('reparent can move a branch under another goal', () => {
+    let state = apply(buildJourney(), { type: 'addGoal', title: 'Side Project' });
+    state = apply(state, {
+      type: 'reparent',
+      id: ids(state, 'Implement frontend'),
+      parentId: ids(state, 'Side Project'),
+    });
+    expect(state.tasks[ids(state, 'Implement frontend')].parentId).toBe(
+      ids(state, 'Side Project'),
+    );
+    expect(state.tasks[ids(state, 'BigW Ticket')].childIds).not.toContain(
+      ids(state, 'Implement frontend'),
+    );
+  });
+});
+
+describe('backlog migration', () => {
+  it('renames a legacy "Inbox" root to "Backlog" on import', () => {
+    let state = apply(buildJourney(), { type: 'capture', title: 'x' });
+    // Simulate old data by forcing the title back to Inbox.
+    const legacy = {
+      ...state,
+      tasks: {
+        ...state.tasks,
+        [state.inboxId!]: { ...state.tasks[state.inboxId!], title: 'Inbox' },
+      },
+    };
+    const imported = apply(emptyState, { type: 'import', state: legacy });
+    expect(imported.tasks[imported.inboxId!].title).toBe('Backlog');
   });
 });
 

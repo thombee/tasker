@@ -29,6 +29,9 @@ export type Action =
   | { type: 'setStatus'; id: string; status: TaskStatus }
   | { type: 'remove'; id: string }
   | { type: 'move'; id: string; dir: -1 | 1 }
+  | { type: 'indent'; id: string }
+  | { type: 'outdent'; id: string }
+  | { type: 'reparent'; id: string; parentId: string | null }
   | { type: 'import'; state: AppState };
 
 function newTask(title: string, parentId: string | null): Task {
@@ -48,6 +51,75 @@ function newTask(title: string, parentId: string | null): Task {
 function pushHistory(state: AppState, entry: HistoryEntry): AppState {
   const history = [...state.history, entry].slice(-HISTORY_LIMIT);
   return { ...state, history };
+}
+
+// The Backlog (captured stray thoughts) always sits last among the goals so
+// it never jumps the execution queue ahead of real work.
+function keepBacklogLast(state: AppState): AppState {
+  if (!state.inboxId) return state;
+  const idx = state.rootIds.indexOf(state.inboxId);
+  if (idx < 0 || idx === state.rootIds.length - 1) return state;
+  const rootIds = state.rootIds.filter((id) => id !== state.inboxId);
+  rootIds.push(state.inboxId);
+  return { ...state, rootIds };
+}
+
+// Is `maybe` inside the subtree rooted at `ancestor`? Used to block moving a
+// task into its own descendant (which would orphan a cycle).
+function isDescendant(state: AppState, ancestor: string, maybe: string): boolean {
+  let cur: Task | undefined = state.tasks[maybe];
+  while (cur && cur.parentId) {
+    if (cur.parentId === ancestor) return true;
+    cur = state.tasks[cur.parentId];
+  }
+  return false;
+}
+
+function reparentTask(
+  state: AppState,
+  id: string,
+  newParentId: string | null,
+  afterId?: string,
+): AppState {
+  const task = state.tasks[id];
+  if (!task) return state;
+  if (newParentId === id) return state;
+  if (newParentId && (!state.tasks[newParentId] || isDescendant(state, id, newParentId))) {
+    return state;
+  }
+  if ((task.parentId ?? null) === newParentId && !afterId) {
+    // Already there with no reordering requested.
+    return state;
+  }
+
+  const tasks = { ...state.tasks };
+  let rootIds = [...state.rootIds];
+
+  // Detach from current location.
+  if (task.parentId && tasks[task.parentId]) {
+    const oldParent = tasks[task.parentId];
+    tasks[oldParent.id] = {
+      ...oldParent,
+      childIds: oldParent.childIds.filter((c) => c !== id),
+    };
+  } else {
+    rootIds = rootIds.filter((r) => r !== id);
+  }
+
+  // Attach at the new location.
+  if (newParentId) {
+    const newParent = tasks[newParentId];
+    const childIds = [...newParent.childIds];
+    const at = afterId ? childIds.indexOf(afterId) : -1;
+    childIds.splice(at >= 0 ? at + 1 : childIds.length, 0, id);
+    tasks[newParent.id] = { ...newParent, childIds };
+  } else {
+    const at = afterId ? rootIds.indexOf(afterId) : -1;
+    rootIds.splice(at >= 0 ? at + 1 : rootIds.length, 0, id);
+  }
+
+  tasks[id] = { ...task, parentId: newParentId };
+  return keepBacklogLast({ ...state, tasks, rootIds });
 }
 
 export function reducer(state: AppState, action: Action): AppState {
@@ -107,7 +179,7 @@ export function reducer(state: AppState, action: Action): AppState {
       let next = state;
       let inboxId = state.inboxId;
       if (!inboxId || !state.tasks[inboxId]) {
-        const inbox = newTask('Inbox', null);
+        const inbox = newTask('Backlog', null);
         inboxId = inbox.id;
         next = {
           ...state,
@@ -290,6 +362,31 @@ export function reducer(state: AppState, action: Action): AppState {
       return { ...state, rootIds: next };
     }
 
+    case 'indent': {
+      // Tuck a task under the sibling directly above it.
+      const task = state.tasks[action.id];
+      if (!task) return state;
+      const siblings = task.parentId
+        ? state.tasks[task.parentId].childIds
+        : state.rootIds;
+      const idx = siblings.indexOf(action.id);
+      if (idx <= 0) return state; // no sibling above to nest under
+      return reparentTask(state, action.id, siblings[idx - 1]);
+    }
+
+    case 'outdent': {
+      // Lift a task out to sit just after its parent — at the top level this
+      // promotes a Backlog item (or any subtask) into its own goal.
+      const task = state.tasks[action.id];
+      if (!task || !task.parentId) return state;
+      const parent = state.tasks[task.parentId];
+      return reparentTask(state, action.id, parent.parentId, parent.id);
+    }
+
+    case 'reparent': {
+      return reparentTask(state, action.id, action.parentId);
+    }
+
     case 'import': {
       return sanitize(action.state);
     }
@@ -306,9 +403,19 @@ function sanitize(raw: unknown): AppState {
     throw new Error('Not a valid tasker backup file');
   }
   const state = raw as AppState;
+  // Migration: the "Inbox" root was renamed to "Backlog". Only rename the
+  // auto-created default title, never a name the user changed themselves.
+  const tasks = { ...state.tasks };
+  if (
+    typeof state.inboxId === 'string' &&
+    tasks[state.inboxId] &&
+    tasks[state.inboxId].title === 'Inbox'
+  ) {
+    tasks[state.inboxId] = { ...tasks[state.inboxId], title: 'Backlog' };
+  }
   return {
-    tasks: state.tasks,
-    rootIds: state.rootIds.filter((id) => state.tasks[id]),
+    tasks,
+    rootIds: state.rootIds.filter((id) => tasks[id]),
     history: Array.isArray(state.history) ? state.history : [],
     inboxId:
       typeof state.inboxId === 'string' && state.tasks[state.inboxId]
