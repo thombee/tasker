@@ -1,15 +1,18 @@
 import { Dispatch, useEffect, useRef, useState } from 'react';
+import { completedToday, lastActiveDay } from '../model/journal';
 import { Action } from '../model/store';
 import { findCurrent, goalOf } from '../model/traversal';
 import { AppState } from '../model/types';
+import { quoteOfTheDay } from '../quotes';
 
 interface Props {
   state: AppState;
   dispatch: Dispatch<Action>;
   onOpenPlan: () => void;
+  backupPaused: boolean;
 }
 
-export default function ExecutionView({ state, dispatch, onOpenPlan }: Props) {
+export default function ExecutionView({ state, dispatch, onOpenPlan, backupPaused }: Props) {
   const currentId = findCurrent(state);
   const [breakingDown, setBreakingDown] = useState(false);
   const [steps, setSteps] = useState('');
@@ -17,6 +20,7 @@ export default function ExecutionView({ state, dispatch, onOpenPlan }: Props) {
   const [captureOpen, setCaptureOpen] = useState(false);
   const [captureText, setCaptureText] = useState('');
   const [toast, setToast] = useState<string | null>(null);
+  const [recapDismissed, setRecapDismissed] = useState(false);
 
   // Close the break-down panel whenever the current task changes.
   useEffect(() => {
@@ -33,6 +37,12 @@ export default function ExecutionView({ state, dispatch, onOpenPlan }: Props) {
   const current = currentId ? state.tasks[currentId] : null;
   const goal = currentId ? goalOf(state, currentId) : null;
   const canUndo = state.history.length > 0;
+  const quote = quoteOfTheDay();
+
+  // Fresh sitting: nothing finished yet today, so show what the last
+  // working day produced — momentum you can reread instead of reconstruct.
+  const recap =
+    !recapDismissed && !completedToday(state) ? lastActiveDay(state) : null;
 
   // Recently finished steps (oldest first) — re-reading your own momentum
   // makes re-entry after a break much easier.
@@ -180,7 +190,27 @@ export default function ExecutionView({ state, dispatch, onOpenPlan }: Props) {
 
       {toast && <p className="just-finished">{toast}</p>}
 
-      {trail.length > 0 && !breakingDown && (
+      {recap && !breakingDown && (
+        <div className="recap">
+          <p className="recap-head">
+            {recap.label === 'Yesterday' ? 'Yesterday' : `Last time (${recap.label})`} you
+            did:
+            <button className="recap-dismiss" onClick={() => setRecapDismissed(true)}>
+              ×
+            </button>
+          </p>
+          {recap.steps.slice(0, 6).map((step) => (
+            <p key={step.id} className="trail-step">
+              ✓ {step.title}
+            </p>
+          ))}
+          {recap.steps.length > 6 && (
+            <p className="trail-step">…and {recap.steps.length - 6} more</p>
+          )}
+        </div>
+      )}
+
+      {trail.length > 0 && !breakingDown && !recap && (
         <div className="trail">
           {trail.map((title, i) => (
             <p key={i} className="trail-step">
@@ -237,9 +267,15 @@ export default function ExecutionView({ state, dispatch, onOpenPlan }: Props) {
             + capture
           </button>
         </div>
+        <p className="quote">
+          “{quote.text}”{quote.author && <span className="muted"> — {quote.author}</span>}
+        </p>
         <p className="keys muted">
           d done · b too big · s skip · z previous · n notes · c capture
         </p>
+        {backupPaused && (
+          <p className="keys muted">file backup paused — open Plan to reconnect</p>
+        )}
       </footer>
     </main>
   );

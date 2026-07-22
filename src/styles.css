@@ -197,6 +197,48 @@ button:disabled {
   opacity: 0.75;
 }
 
+/* ---- yesterday recap ---- */
+
+.recap {
+  animation: rise 0.35s ease;
+  background: var(--soft);
+  border-radius: 14px;
+  padding: 0.9rem 1.2rem;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.recap-head {
+  color: var(--muted);
+  font-size: 0.82rem;
+  margin-bottom: 0.35rem;
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.recap-dismiss {
+  color: var(--muted);
+  padding: 0 0.3rem;
+}
+
+.recap-dismiss:hover {
+  color: var(--ink);
+}
+
+/* ---- daily quote ---- */
+
+.quote {
+  color: var(--muted);
+  font-style: italic;
+  font-size: 0.82rem;
+  margin-top: 0.6rem;
+  max-width: 440px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
 /* ---- quick capture ---- */
 
 .capture {
@@ -435,7 +477,73 @@ textarea {
 
 .backup {
   justify-content: flex-start;
+  font-size: 0.85rem;
+}
+
+.backup-section {
   border-top: 1px solid var(--line);
   padding-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.backup-section .small {
+  margin-top: 0;
+}
+
+.backup-ok {
+  color: var(--accent);
+}
+
+.link.inline {
+  padding: 0 0.25rem;
+  text-decoration: underline;
+  font-size: inherit;
+}
+
+/* ---- journal ---- */
+
+.journal {
+  padding: 2rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.journal-day h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+}
+
+.journal-count {
+  font-weight: 400;
+  font-size: 0.8rem;
+  margin-left: 0.6rem;
+}
+
+.journal-finished {
+  color: var(--accent);
   font-size: 0.85rem;
+  margin-bottom: 0.3rem;
+}
+
+.journal ul {
+  list-style: none;
+  padding: 0;
+}
+
+.journal li {
+  font-size: 0.92rem;
+  line-height: 1.8;
+}
+
+.journal-check {
+  color: var(--accent);
+  margin-right: 0.3rem;
+}
+
+.journal-goal {
+  font-size: 0.8rem;
 }

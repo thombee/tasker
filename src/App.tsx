@@ -1,13 +1,16 @@
 import { useEffect, useReducer, useState } from 'react';
 import { emptyState, loadState, reducer, saveState } from './model/store';
+import { useFileBackup } from './hooks/useFileBackup';
 import ExecutionView from './components/ExecutionView';
+import JournalView from './components/JournalView';
 import PlanningView from './components/PlanningView';
 
-type Mode = 'execute' | 'plan';
+type Mode = 'execute' | 'plan' | 'journal';
 
 export default function App() {
   const [state, dispatch] = useReducer(reducer, undefined, () => loadState() ?? emptyState);
   const [mode, setMode] = useState<Mode>('execute');
+  const backup = useFileBackup(state);
 
   useEffect(() => {
     saveState(state);
@@ -17,18 +20,34 @@ export default function App() {
     <div className="app">
       <header className="topbar">
         <span className="brand">tasker</span>
-        <button
-          className="link"
-          onClick={() => setMode(mode === 'execute' ? 'plan' : 'execute')}
-        >
-          {mode === 'execute' ? 'Plan' : '← Back to focus'}
-        </button>
+        <nav className="topnav">
+          {mode !== 'execute' && (
+            <button className="link" onClick={() => setMode('execute')}>
+              ← Back to focus
+            </button>
+          )}
+          {mode !== 'journal' && (
+            <button className="link" onClick={() => setMode('journal')}>
+              Journal
+            </button>
+          )}
+          {mode !== 'plan' && (
+            <button className="link" onClick={() => setMode('plan')}>
+              Plan
+            </button>
+          )}
+        </nav>
       </header>
-      {mode === 'execute' ? (
-        <ExecutionView state={state} dispatch={dispatch} onOpenPlan={() => setMode('plan')} />
-      ) : (
-        <PlanningView state={state} dispatch={dispatch} />
+      {mode === 'execute' && (
+        <ExecutionView
+          state={state}
+          dispatch={dispatch}
+          onOpenPlan={() => setMode('plan')}
+          backupPaused={backup.status === 'paused'}
+        />
       )}
+      {mode === 'plan' && <PlanningView state={state} dispatch={dispatch} backup={backup} />}
+      {mode === 'journal' && <JournalView state={state} />}
     </div>
   );
 }

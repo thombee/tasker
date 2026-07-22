@@ -1,4 +1,5 @@
 import { ChangeEvent, Dispatch, useRef, useState } from 'react';
+import { FileBackup } from '../hooks/useFileBackup';
 import { Action } from '../model/store';
 import { AppState } from '../model/types';
 import TreeNode from './TreeNode';
@@ -6,9 +7,10 @@ import TreeNode from './TreeNode';
 interface Props {
   state: AppState;
   dispatch: Dispatch<Action>;
+  backup: FileBackup;
 }
 
-export default function PlanningView({ state, dispatch }: Props) {
+export default function PlanningView({ state, dispatch, backup }: Props) {
   const [newGoal, setNewGoal] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -72,20 +74,54 @@ export default function PlanningView({ state, dispatch }: Props) {
         </button>
       </div>
 
-      <div className="row backup">
-        <button className="ghost" onClick={exportJson}>
-          Export backup
-        </button>
-        <button className="ghost" onClick={() => fileRef.current?.click()}>
-          Import backup
-        </button>
-        <input
-          ref={fileRef}
-          type="file"
-          accept="application/json"
-          hidden
-          onChange={importJson}
-        />
+      <div className="backup-section">
+        {backup.supported ? (
+          backup.status === 'off' ? (
+            <p className="muted small">
+              Your data lives in this browser.{' '}
+              <button className="link inline" onClick={backup.choose}>
+                Choose a file on disk
+              </button>{' '}
+              and every change autosaves there too — safe from browser cleanups.
+            </p>
+          ) : backup.status === 'on' ? (
+            <p className="muted small">
+              <span className="backup-ok">●</span> Autosaving to{' '}
+              <strong>{backup.fileName}</strong>
+              <button className="link inline" onClick={backup.disconnect}>
+                stop
+              </button>
+            </p>
+          ) : (
+            <p className="muted small">
+              File backup paused (browser needs permission again).{' '}
+              <button className="link inline" onClick={backup.reconnect}>
+                Reconnect {backup.fileName ?? 'file'}
+              </button>
+            </p>
+          )
+        ) : (
+          <p className="muted small">
+            This browser can't autosave to a file — use Export below now and
+            then, or open tasker in Chrome/Edge.
+          </p>
+        )}
+
+        <div className="row backup">
+          <button className="ghost" onClick={exportJson}>
+            Export backup
+          </button>
+          <button className="ghost" onClick={() => fileRef.current?.click()}>
+            Import backup
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="application/json"
+            hidden
+            onChange={importJson}
+          />
+        </div>
       </div>
     </main>
   );

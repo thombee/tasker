@@ -16,8 +16,10 @@ npm run dev      # opens on http://localhost:5173
 ```
 
 Everything is stored in your browser's localStorage. No account, no server,
-no sync — use **Plan → Export backup** to save your data to a JSON file (and
-Import to restore it).
+no sync. For durability, **Plan → "Choose a file on disk"** picks a real
+file that every change autosaves to (Chrome/Edge — File System Access API),
+so a browser cleanup can't take your data with it. Manual **Export/Import
+backup** works everywhere as a fallback.
 
 ```bash
 npm test         # core traversal/undo logic tests
@@ -64,6 +66,16 @@ tools for externalized working memory:
 
 Keyboard shortcuts in execution mode: `d`/`Enter` done · `b` too big ·
 `s` skip · `z` previous · `n` notes · `c` capture.
+
+### Journal
+
+The **Journal** view (top-right) lists what you finished, day by day —
+steps under the goal they belonged to, plus anything you wrapped up
+outright. No percentages, no streaks; just evidence that it adds up. On
+your first sitting of the day, execution mode shows a small "Yesterday you
+did: …" recap (or "Last time (Friday …)" after days off) until you finish
+your first step. A daily rotating quote about starting small sits quietly
+in the footer.
 
 ## Deliberate design decisions
 
