@@ -36,6 +36,7 @@ export type PingKind = 'ntfy' | 'slack' | 'teams' | 'discord';
 export interface PingRequest {
   url: string;
   kind: PingKind;
+  method: 'GET' | 'POST';
   headers: Record<string, string>;
   body: string;
 }
@@ -50,12 +51,13 @@ export function buildPing(
   if (/hooks\.slack\.com/i.test(url)) {
     // No Content-Type on purpose: Slack parses the raw body, and a
     // "simple" request avoids a CORS preflight in the browser fallback.
-    return { url, kind: 'slack', headers: {}, body: JSON.stringify({ text }) };
+    return { url, kind: 'slack', method: 'POST', headers: {}, body: JSON.stringify({ text }) };
   }
   if (/discord(app)?\.com\/api\/webhooks/i.test(url)) {
     return {
       url,
       kind: 'discord',
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ content: text }),
     };
@@ -64,16 +66,18 @@ export function buildPing(
     return {
       url,
       kind: 'teams',
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text }),
     };
   }
-  return {
-    url,
-    kind: 'ntfy',
-    headers: { Title: title, Tags: 'crescent_moon' },
-    body: message,
-  };
+  // ntfy: publish via GET query params — the exact request shape that
+  // works from a plain browser URL bar, which proxies that block POST
+  // "uploads" to uncategorized sites still allow.
+  const publish =
+    `${url.replace(/\/$/, '')}/publish?message=${encodeURIComponent(message)}` +
+    `&title=${encodeURIComponent(title)}&tags=crescent_moon`;
+  return { url: publish, kind: 'ntfy', method: 'GET', headers: {}, body: '' };
 }
 
 function confirmed(kind: PingKind, status: number, body: string): boolean {
@@ -93,11 +97,17 @@ function confirmed(kind: PingKind, status: number, body: string): boolean {
   return true;
 }
 
-export async function sendParkPing(
+export interface PingResult {
+  ok: boolean;
+  status: number;
+  snippet: string;
+}
+
+export async function sendParkPingDetailed(
   topic: string,
   nextStep: string,
   note: string,
-): Promise<boolean> {
+): Promise<PingResult> {
   const message = note ? `Next: ${nextStep}\n“${note}”` : `Next: ${nextStep}`;
   const ping = buildPing(topic, 'Parked', message);
 
@@ -108,12 +118,17 @@ export async function sendParkPing(
   if (native?.ping) {
     try {
       const result = await native.ping(ping.url, {
+        method: ping.method,
         headers: ping.headers,
         body: ping.body,
       });
-      return confirmed(ping.kind, result.status, result.body);
-    } catch {
-      return false;
+      return {
+        ok: confirmed(ping.kind, result.status, result.body),
+        status: result.status,
+        snippet: result.body.replace(/\s+/g, ' ').slice(0, 140),
+      };
+    } catch (err) {
+      return { ok: false, status: 0, snippet: String(err).slice(0, 140) };
     }
   }
 
@@ -123,15 +138,28 @@ export async function sendParkPing(
       // Slack webhooks send no CORS headers, so the response is unreadable
       // from a page; no-cors delivers the request but can't be verified.
       await fetch(ping.url, { method: 'POST', mode: 'no-cors', body: ping.body });
-      return true;
+      return { ok: true, status: 0, snippet: 'sent (unverifiable from a browser)' };
     }
     const response = await fetch(ping.url, {
-      method: 'POST',
+      method: ping.method,
       headers: ping.headers,
-      body: ping.body,
+      body: ping.method === 'POST' ? ping.body : undefined,
     });
-    return confirmed(ping.kind, response.status, await response.text());
-  } catch {
-    return false;
+    const body = await response.text();
+    return {
+      ok: confirmed(ping.kind, response.status, body),
+      status: response.status,
+      snippet: body.replace(/\s+/g, ' ').slice(0, 140),
+    };
+  } catch (err) {
+    return { ok: false, status: 0, snippet: String(err).slice(0, 140) };
   }
+}
+
+export async function sendParkPing(
+  topic: string,
+  nextStep: string,
+  note: string,
+): Promise<boolean> {
+  return (await sendParkPingDetailed(topic, nextStep, note)).ok;
 }

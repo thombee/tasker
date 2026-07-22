@@ -1,6 +1,6 @@
 import { ChangeEvent, Dispatch, useRef, useState } from 'react';
 import { FileBackup } from '../hooks/useFileBackup';
-import { getPhoneTopic, savePhoneTopic, sendParkPing } from '../model/phonePing';
+import { getPhoneTopic, savePhoneTopic, sendParkPingDetailed } from '../model/phonePing';
 import { Action } from '../model/store';
 import { AppState } from '../model/types';
 import TreeNode from './TreeNode';
@@ -19,12 +19,19 @@ export default function PlanningView({ state, dispatch, backup }: Props) {
 
   async function sendTestPing() {
     setPingStatus('sending…');
-    const ok = await sendParkPing(phoneTopic, 'Test from tasker — pings work', '');
-    setPingStatus(
-      ok
-        ? 'delivery confirmed ✓ — check your phone'
-        : "delivery not confirmed — blocked network, intercepting proxy, or a bad topic/URL",
+    const result = await sendParkPingDetailed(
+      phoneTopic,
+      'Test from tasker — pings work',
+      '',
     );
+    if (result.ok) {
+      setPingStatus('delivery confirmed ✓ — check your phone');
+    } else {
+      const status = result.status > 0 ? `HTTP ${result.status}` : 'no response';
+      setPingStatus(
+        `not confirmed (${status})${result.snippet ? ` — ${result.snippet}` : ''}`,
+      );
+    }
   }
 
   function addGoal() {

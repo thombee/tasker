@@ -8,10 +8,14 @@ ipcMain.handle('tasker:ping', async (_event, url, init) => {
     if (typeof url !== 'string' || !/^https:\/\//i.test(url)) {
       return { status: 0, body: 'invalid url' };
     }
+    const method = init && init.method === 'GET' ? 'GET' : 'POST';
     const response = await net.fetch(url, {
-      method: 'POST',
+      method,
       headers: init && typeof init.headers === 'object' ? init.headers : {},
-      body: init && typeof init.body === 'string' ? init.body : '',
+      body:
+        method === 'POST' && init && typeof init.body === 'string'
+          ? init.body
+          : undefined,
     });
     const body = (await response.text()).slice(0, 500);
     return { status: response.status, body };

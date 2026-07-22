@@ -3,7 +3,7 @@ interface Window {
   taskerNative?: {
     ping(
       url: string,
-      init: { headers: Record<string, string>; body: string },
+      init: { method: 'GET' | 'POST'; headers: Record<string, string>; body: string },
     ): Promise<{ status: number; body: string }>;
   };
 }

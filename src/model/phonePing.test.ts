@@ -22,12 +22,15 @@ describe('pingUrl', () => {
 });
 
 describe('buildPing', () => {
-  it('sends plain text with headers for ntfy topics', () => {
+  it('publishes ntfy topics via GET query params — no body, no custom headers', () => {
     const ping = buildPing('my-topic', 'Parked', 'Next: Open file');
     expect(ping.kind).toBe('ntfy');
-    expect(ping.url).toBe('https://ntfy.sh/my-topic');
-    expect(ping.body).toBe('Next: Open file');
-    expect(ping.headers.Title).toBe('Parked');
+    expect(ping.method).toBe('GET');
+    expect(ping.url).toBe(
+      'https://ntfy.sh/my-topic/publish?message=Next%3A%20Open%20file&title=Parked&tags=crescent_moon',
+    );
+    expect(ping.body).toBe('');
+    expect(ping.headers).toEqual({});
   });
 
   it('formats Slack webhooks as {text} JSON without a content type', () => {
@@ -61,8 +64,12 @@ describe('buildPing', () => {
     expect(JSON.parse(ping.body).content).toContain('Next: Open file');
   });
 
-  it('treats self-hosted ntfy URLs as ntfy', () => {
+  it('treats self-hosted ntfy URLs as ntfy and appends the publish path', () => {
     const ping = buildPing('https://ntfy.example.com/secret', 'Parked', 'x');
     expect(ping.kind).toBe('ntfy');
+    expect(ping.method).toBe('GET');
+    expect(ping.url).toBe(
+      'https://ntfy.example.com/secret/publish?message=x&title=Parked&tags=crescent_moon',
+    );
   });
 });
