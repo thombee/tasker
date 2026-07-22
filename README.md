@@ -26,6 +26,33 @@ npm test         # core traversal/undo logic tests
 npm run build    # production build in dist/
 ```
 
+## Running it as a Mac app
+
+The repo ships an Electron wrapper so tasker can be a normal desktop app —
+dock icon, own window, launches from Spotlight, no terminal or browser.
+
+On your Mac:
+
+```bash
+npm install
+npm run dist:mac   # builds release/tasker-<version>-arm64.dmg
+```
+
+Open the `.dmg` from `release/` and drag **tasker** into Applications.
+(It's unsigned, so the first launch needs right-click → Open.) For a quick
+run without packaging, `npm run app` starts the desktop window directly.
+
+Notes:
+
+- The desktop app has its **own storage** (Electron's user-data directory,
+  which nothing but the app touches — no browser-cleanup risk). If you have
+  existing data in the browser version, move it across with
+  Plan → Export backup in the browser, then Import backup in the app.
+- The window title mirrors the current task, same as the browser tab.
+- macOS packaging has to run on a Mac; there's no cross-build from
+  Linux/CI here. `electron-builder --win` / `--linux` work the same way on
+  those platforms.
+
 ## How it works
 
 - **Everything is a Task.** Goals, tasks, subtasks — all just nodes in a

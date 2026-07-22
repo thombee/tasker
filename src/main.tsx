@@ -9,8 +9,14 @@ createRoot(document.getElementById('root')!).render(
   </React.StrictMode>,
 );
 
-if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+// Service worker only makes sense served over http (the browser/PWA case);
+// in Electron the app loads from file:// and is inherently offline-capable.
+if (
+  import.meta.env.PROD &&
+  'serviceWorker' in navigator &&
+  window.location.protocol.startsWith('http')
+) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {});
+    navigator.serviceWorker.register('sw.js').catch(() => {});
   });
 }
