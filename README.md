@@ -31,9 +31,11 @@ npm run build    # production build in dist/
 The repo ships an Electron wrapper so tasker can be a normal desktop app —
 dock icon, own window, launches from Spotlight, no terminal or browser.
 
-On your Mac:
+On your Mac (**needs Node ≥ 22.12** — Electron 43 and electron-builder
+require it; on older Node the build fails with an `ERR_REQUIRE_ESM` crash):
 
 ```bash
+node -v            # v22+ — if not: brew install node@22 / nvm install 22
 npm install
 npm run dist:mac   # builds release/tasker-<version>-arm64.dmg
 ```
