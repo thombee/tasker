@@ -127,11 +127,37 @@ export async function sendParkPingDetailed(
 // Silent state update on resume, so a widget polling the topic can show
 // "in session" instead of a stale parked step. min priority: no alert.
 export async function sendResumePing(topic: string, nextStep: string): Promise<boolean> {
-  const ping = buildPing(topic, 'In session', `Working on: ${nextStep}`, {
-    priority: 'min',
-    tags: 'green_circle',
-  });
-  return (await sendPing(ping)).ok;
+  const result = await withAuthRetry(topic, () =>
+    sendPing(
+      buildPing(topic, 'In session', `Working on: ${nextStep}`, {
+        priority: 'min',
+        tags: 'green_circle',
+      }),
+    ),
+  );
+  return result.ok;
+}
+
+// Shared auto-reauth: when a corporate filter answers with its sign-in
+// page and we're in the desktop app, open the sign-in window (usually
+// auto-completes and closes itself), then retry once.
+async function withAuthRetry(
+  topic: string,
+  attempt: () => Promise<PingResult>,
+): Promise<PingResult> {
+  let result = await attempt();
+  const native =
+    typeof window !== 'undefined' ? window.taskerNative : undefined;
+  if (!result.ok && native?.openAuth && looksLikeAuthPage(result)) {
+    try {
+      const origin = new URL(pingUrl(topic)).origin;
+      const authed = await native.openAuth(origin);
+      if (authed) result = await attempt();
+    } catch {
+      // Keep the original failure result.
+    }
+  }
+  return result;
 }
 
 async function sendPing(ping: PingRequest): Promise<PingResult> {
@@ -197,26 +223,11 @@ export function looksLikeAuthPage(result: PingResult): boolean {
   );
 }
 
-// Ping with automatic re-authentication: when the response smells like a
-// corporate sign-in page and we're in the desktop app, open the sign-in
-// window (SSO chains usually auto-complete and the window closes itself),
-// then retry once.
+// Park ping with automatic re-authentication (see withAuthRetry).
 export async function sendParkPingSmart(
   topic: string,
   nextStep: string,
   note: string,
 ): Promise<PingResult> {
-  let result = await sendParkPingDetailed(topic, nextStep, note);
-  const native =
-    typeof window !== 'undefined' ? window.taskerNative : undefined;
-  if (!result.ok && native?.openAuth && looksLikeAuthPage(result)) {
-    try {
-      const origin = new URL(pingUrl(topic)).origin;
-      const authed = await native.openAuth(origin);
-      if (authed) result = await sendParkPingDetailed(topic, nextStep, note);
-    } catch {
-      // Keep the original failure result.
-    }
-  }
-  return result;
+  return withAuthRetry(topic, () => sendParkPingDetailed(topic, nextStep, note));
 }
