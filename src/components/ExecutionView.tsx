@@ -1,6 +1,6 @@
 import { Dispatch, useEffect, useRef, useState } from 'react';
 import { completedToday, lastActiveDay } from '../model/journal';
-import { getPhoneTopic, sendParkPingSmart } from '../model/phonePing';
+import { getPhoneTopic, sendParkPingSmart, sendResumePing } from '../model/phonePing';
 import { Action } from '../model/store';
 import { findCurrent, goalOf, remainingSteps } from '../model/traversal';
 import { AppState } from '../model/types';
@@ -82,7 +82,11 @@ export default function ExecutionView({ state, dispatch, onOpenPlan, backupPause
       const target = e.target as HTMLElement;
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
       if (state.parked) {
-        if (e.key === 'Enter' || e.key === 'r') dispatch({ type: 'resume' });
+        if (e.key === 'Enter' || e.key === 'r') {
+          const topic = getPhoneTopic();
+          if (topic && current) void sendResumePing(topic, current.title);
+          dispatch({ type: 'resume' });
+        }
         return;
       }
       if (breakingDown) {
@@ -201,7 +205,14 @@ export default function ExecutionView({ state, dispatch, onOpenPlan, backupPause
               It's written down. You don't have to carry it.
             </p>
             <div className="controls">
-              <button className="primary" onClick={() => dispatch({ type: 'resume' })}>
+              <button
+                className="primary"
+                onClick={() => {
+                  const topic = getPhoneTopic();
+                  if (topic) void sendResumePing(topic, current.title);
+                  dispatch({ type: 'resume' });
+                }}
+              >
                 I'm back
               </button>
             </div>

@@ -64,6 +64,16 @@ describe('buildPing', () => {
     expect(JSON.parse(ping.body).content).toContain('Next: Open file');
   });
 
+  it('appends priority and custom tags for silent state pings', () => {
+    const ping = buildPing('t', 'In session', 'Working on: x', {
+      priority: 'min',
+      tags: 'green_circle',
+    });
+    expect(ping.url).toBe(
+      'https://ntfy.sh/t/publish?message=Working%20on%3A%20x&title=In%20session&tags=green_circle&priority=min',
+    );
+  });
+
   it('treats self-hosted ntfy URLs as ntfy and appends the publish path', () => {
     const ping = buildPing('https://ntfy.example.com/secret', 'Parked', 'x');
     expect(ping.kind).toBe('ntfy');

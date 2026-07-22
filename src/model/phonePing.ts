@@ -41,10 +41,18 @@ export interface PingRequest {
   body: string;
 }
 
+export interface PingOptions {
+  // ntfy-only: 'min' delivers without alerting — state updates meant for
+  // the home-screen widget, not for the human's attention.
+  priority?: 'min' | 'default';
+  tags?: string;
+}
+
 export function buildPing(
   topicOrUrl: string,
   title: string,
   message: string,
+  opts: PingOptions = {},
 ): PingRequest {
   const url = pingUrl(topicOrUrl);
   const text = `☾ ${title}\n${message}`;
@@ -74,9 +82,13 @@ export function buildPing(
   // ntfy: publish via GET query params — the exact request shape that
   // works from a plain browser URL bar, which proxies that block POST
   // "uploads" to uncategorized sites still allow.
-  const publish =
+  let publish =
     `${url.replace(/\/$/, '')}/publish?message=${encodeURIComponent(message)}` +
-    `&title=${encodeURIComponent(title)}&tags=crescent_moon`;
+    `&title=${encodeURIComponent(title)}` +
+    `&tags=${encodeURIComponent(opts.tags ?? 'crescent_moon')}`;
+  if (opts.priority && opts.priority !== 'default') {
+    publish += `&priority=${opts.priority}`;
+  }
   return { url: publish, kind: 'ntfy', method: 'GET', headers: {}, body: '' };
 }
 
@@ -109,8 +121,20 @@ export async function sendParkPingDetailed(
   note: string,
 ): Promise<PingResult> {
   const message = note ? `Next: ${nextStep}\n“${note}”` : `Next: ${nextStep}`;
-  const ping = buildPing(topic, 'Parked', message);
+  return sendPing(buildPing(topic, 'Parked', message));
+}
 
+// Silent state update on resume, so a widget polling the topic can show
+// "in session" instead of a stale parked step. min priority: no alert.
+export async function sendResumePing(topic: string, nextStep: string): Promise<boolean> {
+  const ping = buildPing(topic, 'In session', `Working on: ${nextStep}`, {
+    priority: 'min',
+    tags: 'green_circle',
+  });
+  return (await sendPing(ping)).ok;
+}
+
+async function sendPing(ping: PingRequest): Promise<PingResult> {
   // Preferred: the Electron main process — Chromium's network stack, no
   // CORS preflight, closest to what "the browser works" proves out.
   const native =

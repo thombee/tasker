@@ -154,6 +154,16 @@ button next to Send test does the same thing manually. That's the same
 sign-in your browser does — only interactive when your identity provider
 actually wants re-verification.
 
+**Home-screen widget (iOS):** `widget/tasker-widget.js` is a
+[Scriptable](https://scriptable.app) script that pins your parked step to
+the phone's home screen — a surface that can't be swiped away, unlike a
+notification (iOS forbids truly undismissable notifications). Setup steps
+are in the file's header. While parked it shows "☾ Parked / *next step* /
+*breadcrumb*"; resuming in the app publishes a silent (`priority=min`)
+state message so the widget flips to "● In session". iOS refreshes
+widgets lazily (~15–30 min), so the notification stays the instant
+channel and the widget the ambient one.
+
 ## Deliberate design decisions
 
 - **Parents are never auto-completed.** Subtasks are often just the *next*
