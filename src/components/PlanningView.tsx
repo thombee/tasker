@@ -191,8 +191,6 @@ export default function PlanningView({ state, dispatch, backup }: Props) {
         </div>
         {pingStatus && <p className="muted small">{pingStatus}</p>}
       </div>
-
-      <p className="keys muted">tasker v{__APP_VERSION__}</p>
     </main>
   );
 }

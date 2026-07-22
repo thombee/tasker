@@ -64,6 +64,11 @@ body {
   letter-spacing: 0.1em;
 }
 
+.version {
+  letter-spacing: 0;
+  opacity: 0.7;
+}
+
 button {
   font: inherit;
   cursor: pointer;

@@ -29,7 +29,7 @@ export default function App() {
   return (
     <div className="app">
       <header className="topbar">
-        <span className="brand">tasker</span>
+        <span className="brand">tasker <span className="version">v{__APP_VERSION__}</span></span>
         <nav className="topnav">
           {mode !== 'execute' && (
             <button className="link" onClick={() => setMode('execute')}>
