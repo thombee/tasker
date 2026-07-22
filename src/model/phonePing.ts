@@ -41,6 +41,17 @@ export function sendParkPing(
     body,
     headers: { Title: 'Parked', Tags: 'crescent_moon' },
   })
-    .then((response) => response.ok)
+    .then(async (response) => {
+      if (!response.ok) return false;
+      // A 200 alone can be a lying intermediary (corporate proxies answer
+      // with their own 200 block pages). Real ntfy echoes the message back
+      // with an id — only that counts as delivered.
+      try {
+        const data = await response.json();
+        return typeof data.id === 'string' && data.id.length > 0;
+      } catch {
+        return false;
+      }
+    })
     .catch(() => false);
 }

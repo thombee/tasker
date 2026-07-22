@@ -22,8 +22,8 @@ export default function PlanningView({ state, dispatch, backup }: Props) {
     const ok = await sendParkPing(phoneTopic, 'Test from tasker — pings work', '');
     setPingStatus(
       ok
-        ? 'sent ✓ — check your phone'
-        : "couldn't reach ntfy — check the topic name and your connection",
+        ? 'ntfy confirmed delivery ✓ — check your phone'
+        : "ntfy didn't confirm — blocked network, intercepting proxy, or bad topic",
     );
   }
 
