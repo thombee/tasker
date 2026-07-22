@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { emptyState, reducer, Action } from './store';
-import { findCurrent, goalOf } from './traversal';
+import { findCurrent, goalOf, remainingSteps } from './traversal';
 import { AppState } from './types';
 
 function apply(state: AppState, ...actions: Action[]): AppState {
@@ -211,5 +211,24 @@ describe('planning edits', () => {
     const state = buildJourney();
     const leaf = idOf(state, 'Open endpoint file');
     expect(goalOf(state, leaf).title).toBe('BigW Ticket');
+  });
+});
+
+describe('remainingSteps', () => {
+  it('counts actionable leaves, not branches', () => {
+    const state = buildJourney();
+    // Open endpoint file, Add parameter, Implement frontend
+    expect(remainingSteps(state, idOf(state, 'BigW Ticket'))).toBe(3);
+    expect(remainingSteps(state, idOf(state, 'Implement backend'))).toBe(2);
+  });
+
+  it('reaches 1 on the last remaining step of a branch', () => {
+    let state = buildJourney();
+    state = apply(state, { type: 'done', id: idOf(state, 'Open endpoint file') });
+    expect(remainingSteps(state, idOf(state, 'Implement backend'))).toBe(1);
+    expect(remainingSteps(state, idOf(state, 'BigW Ticket'))).toBe(2);
+    state = apply(state, { type: 'done', id: idOf(state, 'Add parameter') });
+    expect(remainingSteps(state, idOf(state, 'BigW Ticket'))).toBe(1);
+    expect(remainingSteps(state, idOf(state, 'Implement backend'))).toBe(0);
   });
 });

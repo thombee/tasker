@@ -1,5 +1,6 @@
 import { useEffect, useReducer, useState } from 'react';
 import { emptyState, loadState, reducer, saveState } from './model/store';
+import { findCurrent } from './model/traversal';
 import { useFileBackup } from './hooks/useFileBackup';
 import ExecutionView from './components/ExecutionView';
 import JournalView from './components/JournalView';
@@ -14,6 +15,15 @@ export default function App() {
 
   useEffect(() => {
     saveState(state);
+  }, [state]);
+
+  // The tab title carries the current task, so even a background tab is a
+  // glanceable cue for what to do next.
+  useEffect(() => {
+    const currentId = findCurrent(state);
+    document.title = currentId
+      ? `☐ ${state.tasks[currentId].title} — tasker`
+      : 'tasker';
   }, [state]);
 
   return (

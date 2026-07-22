@@ -21,6 +21,18 @@ function descend(state: AppState, id: string): string | null {
   return id;
 }
 
+// How many actionable steps remain inside a branch — a todo node with no
+// remaining todo children counts as one step (itself).
+export function remainingSteps(state: AppState, id: string): number {
+  const task = state.tasks[id];
+  if (!task || task.status !== 'todo') return 0;
+  const inChildren = task.childIds.reduce(
+    (sum, childId) => sum + remainingSteps(state, childId),
+    0,
+  );
+  return inChildren > 0 ? inChildren : 1;
+}
+
 export function goalOf(state: AppState, id: string): Task {
   let task = state.tasks[id];
   while (task.parentId && state.tasks[task.parentId]) {

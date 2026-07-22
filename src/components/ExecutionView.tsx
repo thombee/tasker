@@ -1,7 +1,7 @@
 import { Dispatch, useEffect, useRef, useState } from 'react';
 import { completedToday, lastActiveDay } from '../model/journal';
 import { Action } from '../model/store';
-import { findCurrent, goalOf } from '../model/traversal';
+import { findCurrent, goalOf, remainingSteps } from '../model/traversal';
 import { AppState } from '../model/types';
 import { quoteOfTheDay } from '../quotes';
 
@@ -21,11 +21,29 @@ export default function ExecutionView({ state, dispatch, onOpenPlan, backupPause
   const [captureText, setCaptureText] = useState('');
   const [toast, setToast] = useState<string | null>(null);
   const [recapDismissed, setRecapDismissed] = useState(false);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState('');
+  const [donePulse, setDonePulse] = useState(0);
+  const prevHistoryLength = useRef(state.history.length);
+
+  // A brief ✓ pulse when something was just completed — immediate,
+  // calm acknowledgment, not a celebration.
+  useEffect(() => {
+    const prev = prevHistoryLength.current;
+    prevHistoryLength.current = state.history.length;
+    if (
+      state.history.length > prev &&
+      state.history[state.history.length - 1]?.kind === 'done'
+    ) {
+      setDonePulse((n) => n + 1);
+    }
+  }, [state.history.length, state.history]);
 
   // Close the break-down panel whenever the current task changes.
   useEffect(() => {
     setBreakingDown(false);
     setSteps('');
+    setEditingTitle(false);
   }, [currentId]);
 
   useEffect(() => {
@@ -99,6 +117,17 @@ export default function ExecutionView({ state, dispatch, onOpenPlan, backupPause
 
   const parent = current.parentId ? state.tasks[current.parentId] : null;
 
+  // Goal-gradient nudge: say so when this is the last remaining step of a
+  // stretch or of the whole goal — narrative, never a number.
+  const lastOfGoal =
+    goal !== null && goal.id !== current.id && remainingSteps(state, goal.id) === 1;
+  const lastOfStretch =
+    !lastOfGoal &&
+    parent !== null &&
+    goal !== null &&
+    parent.id !== goal.id &&
+    remainingSteps(state, parent.id) === 1;
+
   // A parent surfaces only when every child is done or skipped but at least
   // one was skipped — the user decides whether it's really finished.
   const isSurfacedParent = current.childIds.length > 0;
@@ -126,12 +155,48 @@ export default function ExecutionView({ state, dispatch, onOpenPlan, backupPause
 
   return (
     <main className="execution">
+      {donePulse > 0 && (
+        <div className="done-pulse" key={donePulse} aria-hidden="true">
+          ✓
+        </div>
+      )}
       <div className="current-card" key={current.id}>
         <p className="label">Current</p>
-        <h1 className="task-title">{current.title}</h1>
+        {editingTitle ? (
+          <input
+            autoFocus
+            className="task-title-edit"
+            value={titleDraft}
+            onChange={(e) => setTitleDraft(e.target.value)}
+            onBlur={() => {
+              dispatch({ type: 'rename', id: current.id, title: titleDraft });
+              setEditingTitle(false);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                dispatch({ type: 'rename', id: current.id, title: titleDraft });
+                setEditingTitle(false);
+              }
+              if (e.key === 'Escape') setEditingTitle(false);
+            }}
+          />
+        ) : (
+          <h1
+            className="task-title editable"
+            title="Click to reword"
+            onClick={() => {
+              setTitleDraft(current.title);
+              setEditingTitle(true);
+            }}
+          >
+            {current.title}
+          </h1>
+        )}
         {parent && goal && parent.id !== goal.id && (
           <p className="muted small">part of: {parent.title}</p>
         )}
+        {lastOfGoal && <p className="last-one">last step of this goal</p>}
+        {lastOfStretch && <p className="last-one">last one in this stretch</p>}
         {current.estimateMinutes && (
           <p className="muted small">about {current.estimateMinutes} min</p>
         )}
