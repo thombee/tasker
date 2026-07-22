@@ -2,7 +2,13 @@ import { Dispatch, useEffect, useRef, useState } from 'react';
 import { completedToday, lastActiveDay } from '../model/journal';
 import { getPhoneTopic, sendParkPingSmart, sendResumePing } from '../model/phonePing';
 import { Action } from '../model/store';
-import { findCurrent, goalOf, remainingSteps, todayActive } from '../model/traversal';
+import {
+  activeRoots,
+  findCurrent,
+  goalOf,
+  remainingSteps,
+  todayActive,
+} from '../model/traversal';
 import { AppState } from '../model/types';
 import { quoteOfTheDay } from '../quotes';
 
@@ -182,9 +188,12 @@ export default function ExecutionView({
 
   const parent = current.parentId ? state.tasks[current.parentId] : null;
 
-  // "Switch goal" only makes sense when another goal still has work left.
+  // "Switch goal" only makes sense when another *reachable* goal still has
+  // work left — i.e. within today's journey when one is active, otherwise any
+  // goal. (Counting all goals here made the link show but do nothing when a
+  // Today filter limited execution to a single goal.)
   const canSwitchGoal =
-    state.rootIds.filter((id) => remainingSteps(state, id) > 0).length > 1;
+    activeRoots(state).filter((id) => remainingSteps(state, id) > 0).length > 1;
 
   // Goal-gradient nudge: say so when this is the last remaining step of a
   // stretch or of the whole goal — narrative, never a number.
