@@ -426,30 +426,40 @@ textarea {
   font-size: 0.9rem;
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
-}
-
-.footer-main {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: 1rem;
+  gap: 0.45rem;
+  text-align: center;
 }
 
-.footer-goal {
-  white-space: nowrap;
+.footer-context {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.1rem;
+  max-width: 100%;
   overflow: hidden;
+  white-space: nowrap;
   text-overflow: ellipsis;
 }
 
+/* One calm dot-separated strip instead of a row of competing buttons. */
 .footer-actions {
   display: flex;
-  gap: 0.15rem;
-  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  font-size: 0.82rem;
 }
 
 .footer-actions .link {
   font-size: 0.82rem;
+  padding: 0.1rem 0.15rem;
+}
+
+.footer-actions .dot {
+  color: var(--faint);
+  opacity: 0.6;
 }
 
 .quote {

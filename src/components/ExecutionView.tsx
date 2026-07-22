@@ -519,67 +519,72 @@ export default function ExecutionView({
       </div>
 
       <footer className="goal-line">
-        <div className="footer-main">
-          <p className="footer-goal">
-            {todayActive(state) && (
-              <button
-                className="today-chip"
-                title="Today's journey — tap to change"
-                onClick={onOpenToday}
-              >
-                Today
-              </button>
-            )}
-            {goal && goal.id !== current.id && (
-              <>
-                <span className="muted">Goal</span> {goal.title}
-              </>
-            )}
-          </p>
-          <div className="footer-actions">
-            <button className="link" onClick={() => setScratchOpen((open) => !open)}>
-              {goal?.notes ? 'notes •' : 'notes'}
+        <p className="footer-context">
+          {todayActive(state) && (
+            <button
+              className="today-chip"
+              title="Today's journey — tap to change"
+              onClick={onOpenToday}
+            >
+              Today
             </button>
-            <button className="link" onClick={() => setCaptureOpen(true)}>
-              + capture
-            </button>
-            {canSwitchGoal && (
+          )}
+          {goal && goal.id !== current.id && (
+            <span className="muted">in {goal.title}</span>
+          )}
+        </p>
+
+        <div className="footer-actions">
+          <button className="link" onClick={() => setScratchOpen((open) => !open)}>
+            {goal?.notes ? 'notes •' : 'notes'}
+          </button>
+          <span className="dot">·</span>
+          <button className="link" onClick={() => setCaptureOpen(true)}>
+            capture
+          </button>
+          <span className="dot">·</span>
+          <button
+            className="link"
+            title="Stepping away? Park with a breadcrumb for future you"
+            onClick={() => setParkOpen(true)}
+          >
+            park
+          </button>
+          {canSwitchGoal && (
+            <>
+              <span className="dot">·</span>
               <button
                 className="link"
                 title="Move on to the next goal — nothing gets skipped"
                 onClick={() => dispatch({ type: 'nextGoal' })}
               >
-                switch goal →
+                switch goal
               </button>
-            )}
-            <button
-              className="link"
-              title="Stepping away? Park with a breadcrumb for future you"
-              onClick={() => setParkOpen(true)}
-            >
-              park ☾
-            </button>
-            <button
-              className="link"
-              title="Keyboard shortcuts"
-              onClick={() => setShowKeys((show) => !show)}
-            >
-              ?
-            </button>
-          </div>
+            </>
+          )}
+          <span className="dot">·</span>
+          <button
+            className="link"
+            title="Keyboard shortcuts"
+            onClick={() => setShowKeys((show) => !show)}
+          >
+            ?
+          </button>
         </div>
-        <p className="quote">
-          “{quote.text}”{quote.author && <span className="quote-author"> — {quote.author}</span>}
-        </p>
+
         {showKeys && (
           <p className="keys muted">
             d done · b break down · s skip · z previous · n notes · c capture · g
-            switch goal
+            switch goal · ☾ park
           </p>
         )}
         {backupPaused && (
           <p className="keys muted">file backup paused — open Plan to reconnect</p>
         )}
+
+        <p className="quote">
+          “{quote.text}”{quote.author && <span className="quote-author"> — {quote.author}</span>}
+        </p>
       </footer>
     </main>
   );
