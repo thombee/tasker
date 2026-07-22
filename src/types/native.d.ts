@@ -1,0 +1,9 @@
+// Exposed by electron/preload.cjs when running as the desktop app.
+interface Window {
+  taskerNative?: {
+    ping(
+      url: string,
+      init: { headers: Record<string, string>; body: string },
+    ): Promise<{ status: number; body: string }>;
+  };
+}

@@ -22,8 +22,8 @@ export default function PlanningView({ state, dispatch, backup }: Props) {
     const ok = await sendParkPing(phoneTopic, 'Test from tasker — pings work', '');
     setPingStatus(
       ok
-        ? 'ntfy confirmed delivery ✓ — check your phone'
-        : "ntfy didn't confirm — blocked network, intercepting proxy, or bad topic",
+        ? 'delivery confirmed ✓ — check your phone'
+        : "delivery not confirmed — blocked network, intercepting proxy, or a bad topic/URL",
     );
   }
 
@@ -141,8 +141,10 @@ export default function PlanningView({ state, dispatch, backup }: Props) {
         <p className="muted small">
           Phone pings (optional): install the <strong>ntfy</strong> app on your
           phone, subscribe to a secret topic name you invent, and paste it
-          here — parking will send your next step to your phone. A full URL
-          also works for a self-hosted ntfy server.
+          here — parking will send your next step to your phone. Also accepts
+          a full URL: a self-hosted ntfy server, or a{' '}
+          <strong>Slack / Teams / Discord webhook</strong> for locked-down
+          work networks.
         </p>
         <div className="row backup">
           <input

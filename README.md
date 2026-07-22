@@ -136,6 +136,14 @@ your phone on a walk. It's a one-way broadcast via [ntfy](https://ntfy.sh)
 Notes: messages pass through ntfy.sh's servers, so keep breadcrumbs
 non-sensitive or point the field at a full URL of a self-hosted ntfy
 server (both forms work). No topic configured = nothing is ever sent.
+The topic is stored per device — set it on each machine you use.
+
+**Locked-down work networks:** the field also accepts a
+Slack / Teams / Discord **webhook URL** (e.g. `https://hooks.slack.com/…`)
+and sends the right payload automatically — useful when a corporate proxy
+blocks ntfy. In the desktop app, pings are sent from Electron's main
+process (Chromium network stack, no CORS preflight), which behaves like
+the browser and survives proxies that break in-page requests.
 
 ## Deliberate design decisions
 
