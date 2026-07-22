@@ -125,9 +125,10 @@ export async function sendParkPingDetailed(
 }
 
 // Silent state update on resume, so a widget polling the topic can show
-// "in session" instead of a stale parked step. min priority: no alert.
-export async function sendResumePing(topic: string, nextStep: string): Promise<boolean> {
-  const result = await withAuthRetry(topic, () =>
+// "in session" instead of a stale parked step. min priority: no alert —
+// it never appears as a notification, only in the topic's message log.
+export async function sendResumePing(topic: string, nextStep: string): Promise<PingResult> {
+  return withAuthRetry(topic, () =>
     sendPing(
       buildPing(topic, 'In session', `Working on: ${nextStep}`, {
         priority: 'min',
@@ -135,7 +136,6 @@ export async function sendResumePing(topic: string, nextStep: string): Promise<b
       }),
     ),
   );
-  return result.ok;
 }
 
 // Shared auto-reauth: when a corporate filter answers with its sign-in

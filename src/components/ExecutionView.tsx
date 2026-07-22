@@ -27,6 +27,7 @@ export default function ExecutionView({ state, dispatch, onOpenPlan, backupPause
   const [showKeys, setShowKeys] = useState(false);
   const [parkOpen, setParkOpen] = useState(false);
   const [parkNote, setParkNote] = useState('');
+  const [parkPingOk, setParkPingOk] = useState<boolean | null>(null);
   const [donePulse, setDonePulse] = useState(0);
   const prevHistoryLength = useRef(state.history.length);
 
@@ -82,11 +83,7 @@ export default function ExecutionView({ state, dispatch, onOpenPlan, backupPause
       const target = e.target as HTMLElement;
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
       if (state.parked) {
-        if (e.key === 'Enter' || e.key === 'r') {
-          const topic = getPhoneTopic();
-          if (topic && current) void sendResumePing(topic, current.title);
-          dispatch({ type: 'resume' });
-        }
+        if (e.key === 'Enter' || e.key === 'r') doResume();
         return;
       }
       if (breakingDown) {
@@ -168,9 +165,29 @@ export default function ExecutionView({ state, dispatch, onOpenPlan, backupPause
     if (!current) return;
     dispatch({ type: 'park', note: parkNote });
     const topic = getPhoneTopic();
-    if (topic) void sendParkPingSmart(topic, current.title, parkNote.trim());
+    setParkPingOk(null);
+    if (topic) {
+      void sendParkPingSmart(topic, current.title, parkNote.trim()).then((result) =>
+        setParkPingOk(result.ok),
+      );
+    }
     setParkNote('');
     setParkOpen(false);
+  }
+
+  function doResume() {
+    if (!current) return;
+    const topic = getPhoneTopic();
+    dispatch({ type: 'resume' });
+    if (topic) {
+      void sendResumePing(topic, current.title).then((result) =>
+        setToast(
+          result.ok
+            ? 'phone state updated ✓'
+            : `phone state update failed (${result.status > 0 ? `HTTP ${result.status}` : 'no response'})`,
+        ),
+      );
+    }
   }
 
   function submitCapture(destination: 'inbox' | 'goal') {
@@ -204,15 +221,15 @@ export default function ExecutionView({ state, dispatch, onOpenPlan, backupPause
             <p className="muted small parked-reassure">
               It's written down. You don't have to carry it.
             </p>
+            {parkPingOk !== null && (
+              <p className={parkPingOk ? 'last-one' : 'muted small'}>
+                {parkPingOk
+                  ? 'sent to your phone ✓'
+                  : "phone ping didn't confirm — check Plan → Send test"}
+              </p>
+            )}
             <div className="controls">
-              <button
-                className="primary"
-                onClick={() => {
-                  const topic = getPhoneTopic();
-                  if (topic) void sendResumePing(topic, current.title);
-                  dispatch({ type: 'resume' });
-                }}
-              >
+              <button className="primary" onClick={doResume}>
                 I'm back
               </button>
             </div>
