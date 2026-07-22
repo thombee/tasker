@@ -121,6 +121,22 @@ did: …" recap (or "Last time (Friday …)" after days off) until you finish
 your first step. A daily rotating quote about starting small sits quietly
 in the footer.
 
+### Phone pings on park (optional)
+
+Parking can send your next step to your phone as a push notification, so
+the microtask — not the looming goal — is what you see when you glance at
+your phone on a walk. It's a one-way broadcast via [ntfy](https://ntfy.sh)
+(free, no account):
+
+1. Install the **ntfy** app (App Store / Play Store).
+2. In the app, subscribe to a topic with an unguessable name you invent
+   (it acts as the secret, e.g. `tasker-thom-x7k2p9`).
+3. Paste that topic into **Plan → Phone pings** and hit *Send test*.
+
+Notes: messages pass through ntfy.sh's servers, so keep breadcrumbs
+non-sensitive or point the field at a full URL of a self-hosted ntfy
+server (both forms work). No topic configured = nothing is ever sent.
+
 ## Deliberate design decisions
 
 - **Parents are never auto-completed.** Subtasks are often just the *next*

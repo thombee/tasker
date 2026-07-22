@@ -1,5 +1,6 @@
 import { ChangeEvent, Dispatch, useRef, useState } from 'react';
 import { FileBackup } from '../hooks/useFileBackup';
+import { getPhoneTopic, savePhoneTopic, sendParkPing } from '../model/phonePing';
 import { Action } from '../model/store';
 import { AppState } from '../model/types';
 import TreeNode from './TreeNode';
@@ -12,7 +13,19 @@ interface Props {
 
 export default function PlanningView({ state, dispatch, backup }: Props) {
   const [newGoal, setNewGoal] = useState('');
+  const [phoneTopic, setPhoneTopic] = useState(getPhoneTopic);
+  const [pingStatus, setPingStatus] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  async function sendTestPing() {
+    setPingStatus('sending…');
+    const ok = await sendParkPing(phoneTopic, 'Test from tasker — pings work', '');
+    setPingStatus(
+      ok
+        ? 'sent ✓ — check your phone'
+        : "couldn't reach ntfy — check the topic name and your connection",
+    );
+  }
 
   function addGoal() {
     if (newGoal.trim()) {
@@ -122,6 +135,30 @@ export default function PlanningView({ state, dispatch, backup }: Props) {
             onChange={importJson}
           />
         </div>
+      </div>
+
+      <div className="backup-section">
+        <p className="muted small">
+          Phone pings (optional): install the <strong>ntfy</strong> app on your
+          phone, subscribe to a secret topic name you invent, and paste it
+          here — parking will send your next step to your phone. A full URL
+          also works for a self-hosted ntfy server.
+        </p>
+        <div className="row backup">
+          <input
+            value={phoneTopic}
+            onChange={(e) => {
+              setPhoneTopic(e.target.value);
+              savePhoneTopic(e.target.value);
+              setPingStatus(null);
+            }}
+            placeholder="e.g. tasker-thom-x7k2p9"
+          />
+          <button className="ghost" disabled={!phoneTopic.trim()} onClick={sendTestPing}>
+            Send test
+          </button>
+        </div>
+        {pingStatus && <p className="muted small">{pingStatus}</p>}
       </div>
     </main>
   );

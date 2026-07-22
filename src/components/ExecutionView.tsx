@@ -1,5 +1,6 @@
 import { Dispatch, useEffect, useRef, useState } from 'react';
 import { completedToday, lastActiveDay } from '../model/journal';
+import { getPhoneTopic, sendParkPing } from '../model/phonePing';
 import { Action } from '../model/store';
 import { findCurrent, goalOf, remainingSteps } from '../model/traversal';
 import { AppState } from '../model/types';
@@ -157,6 +158,15 @@ export default function ExecutionView({ state, dispatch, onOpenPlan, backupPause
     }
     setBreakingDown(false);
     setSteps('');
+  }
+
+  function doPark() {
+    if (!current) return;
+    dispatch({ type: 'park', note: parkNote });
+    const topic = getPhoneTopic();
+    if (topic) void sendParkPing(topic, current.title, parkNote.trim());
+    setParkNote('');
+    setParkOpen(false);
   }
 
   function submitCapture(destination: 'inbox' | 'goal') {
@@ -363,24 +373,13 @@ export default function ExecutionView({ state, dispatch, onOpenPlan, backupPause
               value={parkNote}
               onChange={(e) => setParkNote(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  dispatch({ type: 'park', note: parkNote });
-                  setParkNote('');
-                  setParkOpen(false);
-                }
+                if (e.key === 'Enter') doPark();
                 if (e.key === 'Escape') setParkOpen(false);
               }}
               placeholder="Breadcrumb for future you (optional)…"
             />
             <div className="row">
-              <button
-                className="primary"
-                onClick={() => {
-                  dispatch({ type: 'park', note: parkNote });
-                  setParkNote('');
-                  setParkOpen(false);
-                }}
-              >
+              <button className="primary" onClick={doPark}>
                 Park it
               </button>
               <button className="ghost" onClick={() => setParkOpen(false)}>
