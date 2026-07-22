@@ -1,5 +1,14 @@
-const { app, BrowserWindow, ipcMain, session, shell } = require('electron');
+const {
+  app,
+  BrowserWindow,
+  globalShortcut,
+  ipcMain,
+  session,
+  shell,
+} = require('electron');
 const path = require('path');
+
+let mainWindow = null;
 
 // Outbound park ping on behalf of the renderer. No CORS/preflight here,
 // Chromium's stack handles system proxies the way the browser does, and
@@ -94,6 +103,10 @@ function createWindow() {
   });
 
   win.loadFile(path.join(__dirname, '..', 'dist', 'index.html'));
+  mainWindow = win;
+  win.on('closed', () => {
+    if (mainWindow === win) mainWindow = null;
+  });
 
   // Any external link opens in the default browser, never inside the app.
   win.webContents.setWindowOpenHandler(({ url }) => {
@@ -102,11 +115,32 @@ function createWindow() {
   });
 }
 
+// Global capture: a system-wide hotkey brings the app forward and opens the
+// capture box, so a stray thought can be dropped in the Backlog from
+// anywhere without hunting for the window.
+function registerQuickCapture() {
+  const ok = globalShortcut.register('CommandOrControl+Shift+K', () => {
+    if (!mainWindow || mainWindow.isDestroyed()) createWindow();
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.show();
+      mainWindow.focus();
+      mainWindow.webContents.send('tasker:quick-capture');
+    }
+  });
+  return ok;
+}
+
 app.whenReady().then(() => {
   createWindow();
+  registerQuickCapture();
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
+});
+
+app.on('will-quit', () => {
+  globalShortcut.unregisterAll();
 });
 
 app.on('window-all-closed', () => {

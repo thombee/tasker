@@ -11,9 +11,18 @@ interface Props {
   dispatch: Dispatch<Action>;
   onOpenPlan: () => void;
   backupPaused: boolean;
+  pendingCapture: boolean;
+  onCaptureConsumed: () => void;
 }
 
-export default function ExecutionView({ state, dispatch, onOpenPlan, backupPaused }: Props) {
+export default function ExecutionView({
+  state,
+  dispatch,
+  onOpenPlan,
+  backupPaused,
+  pendingCapture,
+  onCaptureConsumed,
+}: Props) {
   const currentId = findCurrent(state);
   const [breakingDown, setBreakingDown] = useState(false);
   const [steps, setSteps] = useState('');
@@ -56,6 +65,15 @@ export default function ExecutionView({ state, dispatch, onOpenPlan, backupPause
     const timer = setTimeout(() => setToast(null), 2500);
     return () => clearTimeout(timer);
   }, [toast]);
+
+  // Global capture hotkey flagged a pending capture — open the box and
+  // acknowledge so it fires exactly once, even across a mode remount.
+  useEffect(() => {
+    if (!pendingCapture) return;
+    setParkOpen(false);
+    setCaptureOpen(true);
+    onCaptureConsumed();
+  }, [pendingCapture, onCaptureConsumed]);
 
   const current = currentId ? state.tasks[currentId] : null;
   const goal = currentId ? goalOf(state, currentId) : null;
@@ -199,7 +217,7 @@ export default function ExecutionView({ state, dispatch, onOpenPlan, backupPause
         setToast(`Added as a step in: ${goal.title}`);
       } else {
         dispatch({ type: 'capture', title: captureText });
-        setToast('Saved to Inbox — keep going');
+        setToast('Saved to Backlog — keep going');
       }
     }
     setCaptureText('');
@@ -430,7 +448,7 @@ export default function ExecutionView({ state, dispatch, onOpenPlan, backupPause
               }}
               placeholder="Stray thought — capture it, stay here…"
             />
-            <p className="keys muted">↵ to Inbox · shift-↵ step in this goal</p>
+            <p className="keys muted">↵ to Backlog · shift-↵ step in this goal</p>
           </div>
         )}
 

@@ -6,5 +6,6 @@ interface Window {
       init: { method: 'GET' | 'POST'; headers: Record<string, string>; body: string },
     ): Promise<{ status: number; body: string }>;
     openAuth(url: string): Promise<boolean>;
+    onQuickCapture(cb: () => void): () => void;
   };
 }

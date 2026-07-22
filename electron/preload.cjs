@@ -7,4 +7,9 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('taskerNative', {
   ping: (url, init) => ipcRenderer.invoke('tasker:ping', url, init),
   openAuth: (url) => ipcRenderer.invoke('tasker:open-auth', url),
+  onQuickCapture: (cb) => {
+    const handler = () => cb();
+    ipcRenderer.on('tasker:quick-capture', handler);
+    return () => ipcRenderer.removeListener('tasker:quick-capture', handler);
+  },
 });

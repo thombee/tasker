@@ -85,11 +85,13 @@ tools for externalized working memory:
   scoped to the current *goal*, editable without leaving the current task.
   Where things are, decisions made, where you left off.
 - **Quick capture** (`c` or "+ capture"): a one-line input for stray
-  thoughts ("reply to that email"). Enter files it into an **Inbox** goal
+  thoughts ("reply to that email"). Enter files it into a **Backlog** goal
   at the end of your journey; **shift-Enter files it as an upcoming step
   of the goal you're inside** — for research tangents that belong right
   here ("do pothos need drainage holes?"). Either way you stay on the
-  current task.
+  current task. In the desktop app, a global hotkey
+  (**Cmd/Ctrl+Shift+K**) brings the window forward and opens capture from
+  anywhere, so an interrupting thought never derails you.
 - **"part of" line**: the current task shows its immediate parent when
   that adds context beyond the goal name — the one deliberate hierarchy leak.
 - **Recent trail**: your last three finished steps, so re-entry after a

@@ -11,11 +11,23 @@ type Mode = 'execute' | 'plan' | 'journal';
 export default function App() {
   const [state, dispatch] = useReducer(reducer, undefined, () => loadState() ?? emptyState);
   const [mode, setMode] = useState<Mode>('execute');
+  const [pendingCapture, setPendingCapture] = useState(false);
   const backup = useFileBackup(state);
 
   useEffect(() => {
     saveState(state);
   }, [state]);
+
+  // Global capture hotkey (desktop app): jump to focus mode and flag a
+  // pending capture. A flag (not an event) survives ExecutionView remounting
+  // when the mode switches.
+  useEffect(() => {
+    if (!window.taskerNative?.onQuickCapture) return;
+    return window.taskerNative.onQuickCapture(() => {
+      setMode('execute');
+      setPendingCapture(true);
+    });
+  }, []);
 
   // The tab title carries the current task, so even a background tab is a
   // glanceable cue for what to do next.
@@ -54,6 +66,8 @@ export default function App() {
           dispatch={dispatch}
           onOpenPlan={() => setMode('plan')}
           backupPaused={backup.status === 'paused'}
+          pendingCapture={pendingCapture}
+          onCaptureConsumed={() => setPendingCapture(false)}
         />
       )}
       {mode === 'plan' && <PlanningView state={state} dispatch={dispatch} backup={backup} />}
