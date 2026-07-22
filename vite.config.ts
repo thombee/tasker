@@ -8,4 +8,7 @@ export default defineConfig({
   // sidestep that entirely.
   base: './',
   plugins: [react(), viteSingleFile()],
+  define: {
+    __APP_VERSION__: JSON.stringify(process.env.npm_package_version ?? 'dev'),
+  },
 });
