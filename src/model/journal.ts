@@ -76,3 +76,69 @@ export function completedToday(state: AppState, now = Date.now()): boolean {
     (t) => t.status === 'done' && t.completedAt && dayKey(t.completedAt) === today,
   );
 }
+
+// A plain-text recap of one day, grouped by goal — the copy you paste into a
+// standup, a 1:1, or a work log. Evidence of the day's output.
+export function daySummaryText(day: DayGroup): string {
+  const byGoal = new Map<string, string[]>();
+  for (const step of day.steps) {
+    const arr = byGoal.get(step.goalTitle) ?? [];
+    arr.push(step.title);
+    byGoal.set(step.goalTitle, arr);
+  }
+  const lines: string[] = [];
+  for (const [goal, steps] of byGoal) {
+    lines.push(`• ${goal}: ${steps.join(', ')}`);
+  }
+  for (const finished of day.finished) {
+    lines.push(`• Completed: ${finished}`);
+  }
+  return `${day.label} — what I did:\n${lines.join('\n')}`;
+}
+
+export interface HeatCell {
+  key: string;
+  count: number;
+  future: boolean;
+}
+
+// Completed leaf steps per local day (parents excluded so nothing is counted
+// twice).
+function leafCountsByDay(state: AppState): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const task of Object.values(state.tasks)) {
+    if (task.status !== 'done' || !task.completedAt || task.childIds.length > 0) continue;
+    const key = dayKey(task.completedAt);
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  return counts;
+}
+
+// A calm contribution-style grid: `weeks` columns, each a Sun–Sat week, the
+// last column containing today. Evidence of consistency without a streak to
+// break.
+export function heatmap(state: AppState, weeks = 12, now = Date.now()): HeatCell[][] {
+  const counts = leafCountsByDay(state);
+  const todayWeekday = new Date(now).getDay(); // 0 = Sunday
+  const lastDay = now + (6 - todayWeekday) * 86400000; // Saturday of this week
+  const total = weeks * 7;
+  const cells: HeatCell[] = [];
+  for (let i = total - 1; i >= 0; i--) {
+    const ts = lastDay - i * 86400000;
+    const key = dayKey(ts);
+    const future = ts > now && key !== dayKey(now);
+    cells.push({ key, count: future ? 0 : counts.get(key) ?? 0, future });
+  }
+  const columns: HeatCell[][] = [];
+  for (let c = 0; c < weeks; c++) columns.push(cells.slice(c * 7, c * 7 + 7));
+  return columns;
+}
+
+// 0 (nothing) … 4 (a lot) — maps a day's step count to a shade band.
+export function heatLevel(count: number): number {
+  if (count <= 0) return 0;
+  if (count <= 2) return 1;
+  if (count <= 4) return 2;
+  if (count <= 7) return 3;
+  return 4;
+}

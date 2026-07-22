@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { completedToday, lastActiveDay, summarizeDays } from './journal';
+import {
+  completedToday,
+  daySummaryText,
+  heatmap,
+  heatLevel,
+  lastActiveDay,
+  summarizeDays,
+} from './journal';
 import { emptyState, reducer } from './store';
 import { AppState } from './types';
 
@@ -63,5 +70,42 @@ describe('journal', () => {
     expect(completedToday(state, NOW)).toBe(false);
     state = completeAt(state, 'Add parameter', NOW);
     expect(completedToday(state, NOW)).toBe(true);
+  });
+});
+
+describe('daySummaryText', () => {
+  it('groups the day’s steps by goal for a pasteable recap', () => {
+    let state = buildState();
+    state = completeAt(state, 'Open file', NOW);
+    state = completeAt(state, 'Add parameter', NOW);
+    const [today] = summarizeDays(state, NOW);
+    const text = daySummaryText(today);
+    expect(text).toContain('what I did');
+    expect(text).toContain('• BigW Ticket: Open file, Add parameter');
+  });
+});
+
+describe('heatmap', () => {
+  it('lays out weeks × 7, last cell is today, counts leaf steps', () => {
+    let state = buildState();
+    state = completeAt(state, 'Open file', NOW);
+    state = completeAt(state, 'Add parameter', NOW);
+    const grid = heatmap(state, 12, NOW);
+    expect(grid).toHaveLength(12);
+    for (const week of grid) expect(week).toHaveLength(7);
+    const todayWeekday = new Date(NOW).getDay();
+    const todayCell = grid[11][todayWeekday];
+    expect(todayCell.count).toBe(2);
+    expect(todayCell.future).toBe(false);
+    // Days after today in the final column are marked future.
+    if (todayWeekday < 6) expect(grid[11][todayWeekday + 1].future).toBe(true);
+  });
+
+  it('heatLevel bands scale with count', () => {
+    expect(heatLevel(0)).toBe(0);
+    expect(heatLevel(1)).toBe(1);
+    expect(heatLevel(3)).toBe(2);
+    expect(heatLevel(6)).toBe(3);
+    expect(heatLevel(12)).toBe(4);
   });
 });

@@ -711,10 +711,70 @@ textarea {
   gap: 1.5rem;
 }
 
+/* ---- consistency heatmap ---- */
+
+.heatmap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.heatmap-grid {
+  display: flex;
+  gap: 3px;
+  overflow-x: auto;
+  padding-bottom: 0.2rem;
+}
+
+.heatmap-week {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.heatmap-cell {
+  width: 13px;
+  height: 13px;
+  border-radius: 3px;
+  background: var(--soft);
+}
+
+.heatmap-cell.level-future {
+  background: transparent;
+}
+
+.heatmap-cell.level-0 {
+  background: var(--soft);
+}
+.heatmap-cell.level-1 {
+  background: color-mix(in srgb, var(--accent) 30%, var(--soft));
+}
+.heatmap-cell.level-2 {
+  background: color-mix(in srgb, var(--accent) 55%, var(--soft));
+}
+.heatmap-cell.level-3 {
+  background: color-mix(in srgb, var(--accent) 78%, var(--soft));
+}
+.heatmap-cell.level-4 {
+  background: var(--accent);
+}
+
+.heatmap-caption {
+  font-size: 0.8rem;
+}
+
 .journal-day h3 {
   font-size: 1rem;
   font-weight: 600;
   margin-bottom: 0.4rem;
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+}
+
+.journal-copy {
+  margin-left: auto;
+  font-size: 0.78rem;
 }
 
 .journal-count {
