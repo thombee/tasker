@@ -163,3 +163,36 @@ export async function sendParkPing(
 ): Promise<boolean> {
   return (await sendParkPingDetailed(topic, nextStep, note)).ok;
 }
+
+// Heuristic: the failed "response" is a filter's sign-in page rather than
+// a real error (Zscaler et al. answer with their own HTML, often HTTP 200).
+export function looksLikeAuthPage(result: PingResult): boolean {
+  return (
+    !result.ok &&
+    /<html|<!doctype|sign[ -]?in|log[ -]?in|authenticat|zscaler/i.test(result.snippet)
+  );
+}
+
+// Ping with automatic re-authentication: when the response smells like a
+// corporate sign-in page and we're in the desktop app, open the sign-in
+// window (SSO chains usually auto-complete and the window closes itself),
+// then retry once.
+export async function sendParkPingSmart(
+  topic: string,
+  nextStep: string,
+  note: string,
+): Promise<PingResult> {
+  let result = await sendParkPingDetailed(topic, nextStep, note);
+  const native =
+    typeof window !== 'undefined' ? window.taskerNative : undefined;
+  if (!result.ok && native?.openAuth && looksLikeAuthPage(result)) {
+    try {
+      const origin = new URL(pingUrl(topic)).origin;
+      const authed = await native.openAuth(origin);
+      if (authed) result = await sendParkPingDetailed(topic, nextStep, note);
+    } catch {
+      // Keep the original failure result.
+    }
+  }
+  return result;
+}

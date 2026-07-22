@@ -1,6 +1,6 @@
 import { Dispatch, useEffect, useRef, useState } from 'react';
 import { completedToday, lastActiveDay } from '../model/journal';
-import { getPhoneTopic, sendParkPing } from '../model/phonePing';
+import { getPhoneTopic, sendParkPingSmart } from '../model/phonePing';
 import { Action } from '../model/store';
 import { findCurrent, goalOf, remainingSteps } from '../model/traversal';
 import { AppState } from '../model/types';
@@ -164,7 +164,7 @@ export default function ExecutionView({ state, dispatch, onOpenPlan, backupPause
     if (!current) return;
     dispatch({ type: 'park', note: parkNote });
     const topic = getPhoneTopic();
-    if (topic) void sendParkPing(topic, current.title, parkNote.trim());
+    if (topic) void sendParkPingSmart(topic, current.title, parkNote.trim());
     setParkNote('');
     setParkOpen(false);
   }

@@ -145,11 +145,14 @@ blocks ntfy. In the desktop app, pings are sent from Electron's main
 process using the app session's cookies (Chromium network stack, no CORS
 preflight, GET query-param publishing for ntfy). If your company filter
 (e.g. **Zscaler**) intercepts with an authentication page — the test
-reports something like `HTTP 200 — …Authentication…` — click
-**Network sign-in** next to Send test: it opens the destination inside
-the app, you complete your normal SSO once, and the session cookie then
-covers pings. That's the same sign-in your browser does; re-do it if the
-filter expires the session.
+reports something like `HTTP 200 — …Authentication…` — the app handles
+it largely automatically: when a ping comes back looking like a sign-in
+page, the sign-in window opens on its own, SSO redirect chains usually
+complete without any interaction (the window closes itself once the
+destination is reached), and the ping retries. The **Network sign-in**
+button next to Send test does the same thing manually. That's the same
+sign-in your browser does — only interactive when your identity provider
+actually wants re-verification.
 
 ## Deliberate design decisions
 

@@ -4,7 +4,7 @@ import {
   getPhoneTopic,
   pingUrl,
   savePhoneTopic,
-  sendParkPingDetailed,
+  sendParkPingSmart,
 } from '../model/phonePing';
 import { Action } from '../model/store';
 import { AppState } from '../model/types';
@@ -24,7 +24,7 @@ export default function PlanningView({ state, dispatch, backup }: Props) {
 
   async function sendTestPing() {
     setPingStatus('sending…');
-    const result = await sendParkPingDetailed(
+    const result = await sendParkPingSmart(
       phoneTopic,
       'Test from tasker — pings work',
       '',

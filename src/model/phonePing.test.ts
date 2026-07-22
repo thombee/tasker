@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildPing, pingUrl } from './phonePing';
+import { buildPing, looksLikeAuthPage, pingUrl } from './phonePing';
 
 describe('pingUrl', () => {
   it('turns a bare topic into an ntfy.sh URL', () => {
@@ -71,5 +71,24 @@ describe('buildPing', () => {
     expect(ping.url).toBe(
       'https://ntfy.example.com/secret/publish?message=x&title=Parked&tags=crescent_moon',
     );
+  });
+});
+
+describe('looksLikeAuthPage', () => {
+  it('spots a filter sign-in page served with HTTP 200', () => {
+    expect(
+      looksLikeAuthPage({
+        ok: false,
+        status: 200,
+        snippet: '<html>Welcome to Zscaler Director Authentication</html>',
+      }),
+    ).toBe(true);
+  });
+
+  it('ignores successful pings and plain network errors', () => {
+    expect(looksLikeAuthPage({ ok: true, status: 200, snippet: '{"id":"x"}' })).toBe(false);
+    expect(
+      looksLikeAuthPage({ ok: false, status: 0, snippet: 'TypeError: fetch failed' }),
+    ).toBe(false);
   });
 });
