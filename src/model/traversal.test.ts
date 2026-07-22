@@ -150,6 +150,37 @@ describe('breakDown', () => {
   });
 });
 
+describe('quick capture', () => {
+  it('creates an Inbox goal on first capture and appends thoughts', () => {
+    let state = apply(buildJourney(), { type: 'capture', title: 'Email Sarah back' });
+    expect(state.inboxId).toBeTruthy();
+    const inbox = state.tasks[state.inboxId!];
+    expect(inbox.title).toBe('Inbox');
+    expect(inbox.parentId).toBeNull();
+    expect(inbox.childIds).toHaveLength(1);
+    state = apply(state, { type: 'capture', title: 'Book dentist' });
+    expect(state.tasks[state.inboxId!].childIds).toHaveLength(2);
+    // Capturing never steals focus from the current task.
+    expect(findCurrent(state)).toBe(idOf(state, 'Open endpoint file'));
+  });
+
+  it('keeps the Inbox as the last goal when new goals are added', () => {
+    let state = apply(buildJourney(), { type: 'capture', title: 'Email Sarah back' });
+    state = apply(state, { type: 'addGoal', title: 'SuccessFactors Review' });
+    expect(state.rootIds[state.rootIds.length - 1]).toBe(state.inboxId);
+    expect(state.rootIds).toHaveLength(3);
+  });
+
+  it('recreates the Inbox after it was deleted', () => {
+    let state = apply(buildJourney(), { type: 'capture', title: 'One' });
+    state = apply(state, { type: 'remove', id: state.inboxId! });
+    expect(state.inboxId).toBeNull();
+    state = apply(state, { type: 'capture', title: 'Two' });
+    expect(state.inboxId).toBeTruthy();
+    expect(state.tasks[state.inboxId!].childIds).toHaveLength(1);
+  });
+});
+
 describe('planning edits', () => {
   it('reopening a task reopens its done ancestors', () => {
     let state = buildJourney();

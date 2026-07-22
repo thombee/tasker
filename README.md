@@ -45,8 +45,25 @@ npm run build    # production build in dist/
   filesystem-like tree where you can add, rename, reorder, delete, annotate,
   and reopen tasks. Execution never looks like planning.
 
+### Context helpers
+
+Hiding the hierarchy costs you context, so execution mode has four small
+tools for externalized working memory:
+
+- **Goal scratchpad** (`n` or the "notes" link): a free-text notes panel
+  scoped to the current *goal*, editable without leaving the current task.
+  Where things are, decisions made, where you left off.
+- **Quick capture** (`c` or "+ capture"): a one-line input for stray
+  thoughts ("reply to that email"). The thought is filed into an **Inbox**
+  goal at the end of your journey and you stay on the current task. The
+  Inbox surfaces naturally once your other goals are done.
+- **"part of" line**: the current task shows its immediate parent when
+  that adds context beyond the goal name — the one deliberate hierarchy leak.
+- **Recent trail**: your last three finished steps, so re-entry after a
+  break means rereading your own momentum instead of reconstructing it.
+
 Keyboard shortcuts in execution mode: `d`/`Enter` done · `b` too big ·
-`s` skip · `z` previous.
+`s` skip · `z` previous · `n` notes · `c` capture.
 
 ## Deliberate design decisions
 

@@ -3,12 +3,18 @@ import { AppState, HistoryEntry, Task, TaskStatus } from './types';
 const STORAGE_KEY = 'tasker.state.v1';
 const HISTORY_LIMIT = 100;
 
-export const emptyState: AppState = { tasks: {}, rootIds: [], history: [] };
+export const emptyState: AppState = {
+  tasks: {},
+  rootIds: [],
+  history: [],
+  inboxId: null,
+};
 
 export type Action =
   | { type: 'addGoal'; title: string }
   | { type: 'addChild'; parentId: string | null; title: string }
   | { type: 'breakDown'; id: string; titles: string[] }
+  | { type: 'capture'; title: string }
   | { type: 'done'; id: string }
   | { type: 'skip'; id: string }
   | { type: 'undo' }
@@ -45,10 +51,14 @@ export function reducer(state: AppState, action: Action): AppState {
       const title = action.title.trim();
       if (!title) return state;
       const task = newTask(title, null);
+      const rootIds = [...state.rootIds];
+      const inboxIndex = state.inboxId ? rootIds.indexOf(state.inboxId) : -1;
+      if (inboxIndex >= 0) rootIds.splice(inboxIndex, 0, task.id);
+      else rootIds.push(task.id);
       return {
         ...state,
         tasks: { ...state.tasks, [task.id]: task },
-        rootIds: [...state.rootIds, task.id],
+        rootIds,
       };
     }
 
@@ -84,6 +94,24 @@ export function reducer(state: AppState, action: Action): AppState {
       }
       tasks[parent.id] = { ...parent, childIds };
       return { ...state, tasks };
+    }
+
+    case 'capture': {
+      const title = action.title.trim();
+      if (!title) return state;
+      let next = state;
+      let inboxId = state.inboxId;
+      if (!inboxId || !state.tasks[inboxId]) {
+        const inbox = newTask('Inbox', null);
+        inboxId = inbox.id;
+        next = {
+          ...state,
+          tasks: { ...state.tasks, [inbox.id]: inbox },
+          rootIds: [...state.rootIds, inbox.id],
+          inboxId,
+        };
+      }
+      return reducer(next, { type: 'addChild', parentId: inboxId, title });
     }
 
     case 'done': {
@@ -215,7 +243,9 @@ export function reducer(state: AppState, action: Action): AppState {
       const history = state.history
         .map((e) => ({ ...e, changes: e.changes.filter((c) => !removed.has(c.id)) }))
         .filter((e) => e.changes.length > 0);
-      return { tasks, rootIds, history };
+      const inboxId =
+        state.inboxId && removed.has(state.inboxId) ? null : state.inboxId;
+      return { tasks, rootIds, history, inboxId };
     }
 
     case 'move': {
@@ -259,6 +289,10 @@ function sanitize(raw: unknown): AppState {
     tasks: state.tasks,
     rootIds: state.rootIds.filter((id) => state.tasks[id]),
     history: Array.isArray(state.history) ? state.history : [],
+    inboxId:
+      typeof state.inboxId === 'string' && state.tasks[state.inboxId]
+        ? state.inboxId
+        : null,
   };
 }
 

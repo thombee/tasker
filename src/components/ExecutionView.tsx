@@ -13,6 +13,10 @@ export default function ExecutionView({ state, dispatch, onOpenPlan }: Props) {
   const currentId = findCurrent(state);
   const [breakingDown, setBreakingDown] = useState(false);
   const [steps, setSteps] = useState('');
+  const [scratchOpen, setScratchOpen] = useState(false);
+  const [captureOpen, setCaptureOpen] = useState(false);
+  const [captureText, setCaptureText] = useState('');
+  const [toast, setToast] = useState<string | null>(null);
 
   // Close the break-down panel whenever the current task changes.
   useEffect(() => {
@@ -20,15 +24,26 @@ export default function ExecutionView({ state, dispatch, onOpenPlan }: Props) {
     setSteps('');
   }, [currentId]);
 
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(null), 2500);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
   const current = currentId ? state.tasks[currentId] : null;
   const goal = currentId ? goalOf(state, currentId) : null;
   const canUndo = state.history.length > 0;
 
-  const lastEntry = state.history[state.history.length - 1];
-  const justFinished =
-    lastEntry && lastEntry.kind === 'done'
-      ? state.tasks[lastEntry.changes[0].id]?.title
-      : null;
+  // Recently finished steps (oldest first) — re-reading your own momentum
+  // makes re-entry after a break much easier.
+  const trail: string[] = [];
+  for (let i = state.history.length - 1; i >= 0 && trail.length < 3; i--) {
+    const entry = state.history[i];
+    if (entry.kind !== 'done') continue;
+    const task = state.tasks[entry.changes[0].id];
+    if (task) trail.push(task.title);
+  }
+  trail.reverse();
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -43,6 +58,11 @@ export default function ExecutionView({ state, dispatch, onOpenPlan }: Props) {
       else if (e.key === 'b') setBreakingDown(true);
       else if (e.key === 's') dispatch({ type: 'skip', id: current.id });
       else if (e.key === 'z' && canUndo) dispatch({ type: 'undo' });
+      else if (e.key === 'n') setScratchOpen((open) => !open);
+      else if (e.key === 'c') {
+        e.preventDefault();
+        setCaptureOpen(true);
+      }
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -67,6 +87,8 @@ export default function ExecutionView({ state, dispatch, onOpenPlan }: Props) {
     );
   }
 
+  const parent = current.parentId ? state.tasks[current.parentId] : null;
+
   // A parent surfaces only when every child is done or skipped but at least
   // one was skipped — the user decides whether it's really finished.
   const isSurfacedParent = current.childIds.length > 0;
@@ -83,15 +105,29 @@ export default function ExecutionView({ state, dispatch, onOpenPlan }: Props) {
     setSteps('');
   }
 
+  function submitCapture() {
+    if (captureText.trim()) {
+      dispatch({ type: 'capture', title: captureText });
+      setToast('Saved to Inbox — keep going');
+    }
+    setCaptureText('');
+    setCaptureOpen(false);
+  }
+
   return (
     <main className="execution">
       <div className="current-card" key={current.id}>
         <p className="label">Current</p>
         <h1 className="task-title">{current.title}</h1>
+        {parent && goal && parent.id !== goal.id && (
+          <p className="muted small">part of: {parent.title}</p>
+        )}
         {current.estimateMinutes && (
           <p className="muted small">about {current.estimateMinutes} min</p>
         )}
-        {current.notes && <p className="notes">{current.notes}</p>}
+        {current.notes && !(scratchOpen && goal && current.id === goal.id) && (
+          <p className="notes">{current.notes}</p>
+        )}
         {isSurfacedParent && (
           <p className="muted small">
             Every step inside is handled
@@ -142,8 +178,49 @@ export default function ExecutionView({ state, dispatch, onOpenPlan }: Props) {
         </div>
       )}
 
-      {justFinished && !breakingDown && (
-        <p className="just-finished">just finished: {justFinished}</p>
+      {toast && <p className="just-finished">{toast}</p>}
+
+      {trail.length > 0 && !breakingDown && (
+        <div className="trail">
+          {trail.map((title, i) => (
+            <p key={i} className="trail-step">
+              ✓ {title}
+            </p>
+          ))}
+        </div>
+      )}
+
+      {captureOpen && (
+        <div className="capture">
+          <input
+            autoFocus
+            value={captureText}
+            onChange={(e) => setCaptureText(e.target.value)}
+            onBlur={() => setCaptureOpen(false)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') submitCapture();
+              if (e.key === 'Escape') setCaptureOpen(false);
+            }}
+            placeholder="Stray thought — it goes to your Inbox, you stay here…"
+          />
+        </div>
+      )}
+
+      {scratchOpen && goal && (
+        <div className="scratchpad">
+          <p className="label">Notes — {goal.title}</p>
+          <textarea
+            value={goal.notes}
+            onChange={(e) => dispatch({ type: 'setNotes', id: goal.id, notes: e.target.value })}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') setScratchOpen(false);
+            }}
+            rows={5}
+            placeholder={
+              'Working memory for this goal — where things are, decisions made, where you left off…'
+            }
+          />
+        </div>
       )}
 
       <footer className="goal-line">
@@ -152,7 +229,17 @@ export default function ExecutionView({ state, dispatch, onOpenPlan }: Props) {
             <span className="muted">Goal</span> {goal.title}
           </p>
         )}
-        <p className="keys muted">d done · b too big · s skip · z previous</p>
+        <div className="footer-actions">
+          <button className="link" onClick={() => setScratchOpen((open) => !open)}>
+            {goal?.notes ? 'notes •' : 'notes'}
+          </button>
+          <button className="link" onClick={() => setCaptureOpen(true)}>
+            + capture
+          </button>
+        </div>
+        <p className="keys muted">
+          d done · b too big · s skip · z previous · n notes · c capture
+        </p>
       </footer>
     </main>
   );

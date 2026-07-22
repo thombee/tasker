@@ -24,4 +24,7 @@ export interface AppState {
   tasks: Record<string, Task>;
   rootIds: string[];
   history: HistoryEntry[];
+  // Root task that quick-captured stray thoughts land in; created on first
+  // capture and kept as the last goal so it never jumps the queue.
+  inboxId: string | null;
 }

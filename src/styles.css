@@ -177,9 +177,61 @@ button:disabled {
 }
 
 .just-finished {
-  color: var(--muted);
+  color: var(--accent);
   font-size: 0.82rem;
   animation: rise 0.35s ease;
+}
+
+.trail {
+  animation: rise 0.35s ease;
+}
+
+.trail-step {
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.7;
+}
+
+.trail-step:last-child {
+  color: var(--ink);
+  opacity: 0.75;
+}
+
+/* ---- quick capture ---- */
+
+.capture {
+  display: flex;
+  justify-content: center;
+  animation: rise 0.2s ease;
+}
+
+.capture input {
+  width: 100%;
+  max-width: 420px;
+}
+
+/* ---- goal scratchpad ---- */
+
+.scratchpad {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: center;
+  animation: rise 0.25s ease;
+}
+
+.scratchpad textarea {
+  width: 100%;
+  max-width: 480px;
+  text-align: left;
+  font-size: 0.9rem;
+}
+
+.footer-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
 }
 
 .goal-line {
