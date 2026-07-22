@@ -1,5 +1,8 @@
+import { dayKey } from './dates';
 import { goalOf } from './traversal';
 import { AppState } from './types';
+
+export { dayKey };
 
 export interface JournalStep {
   id: string;
@@ -13,13 +16,6 @@ export interface DayGroup {
   label: string; // "Today", "Yesterday", or "Monday 20 July"
   steps: JournalStep[]; // leaf tasks — the physical actions taken
   finished: string[]; // titles of parent tasks/goals wrapped up that day
-}
-
-export function dayKey(timestamp: number): string {
-  const d = new Date(timestamp);
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${d.getFullYear()}-${month}-${day}`;
 }
 
 function dayLabel(key: string, now: number): string {

@@ -5,8 +5,9 @@ import { useFileBackup } from './hooks/useFileBackup';
 import ExecutionView from './components/ExecutionView';
 import JournalView from './components/JournalView';
 import PlanningView from './components/PlanningView';
+import TodayView from './components/TodayView';
 
-type Mode = 'execute' | 'plan' | 'journal';
+type Mode = 'execute' | 'plan' | 'journal' | 'today';
 
 export default function App() {
   const [state, dispatch] = useReducer(reducer, undefined, () => loadState() ?? emptyState);
@@ -45,7 +46,12 @@ export default function App() {
         <nav className="topnav">
           {mode !== 'execute' && (
             <button className="link" onClick={() => setMode('execute')}>
-              ← Back to focus
+              ← Focus
+            </button>
+          )}
+          {mode !== 'today' && (
+            <button className="link" onClick={() => setMode('today')}>
+              Today
             </button>
           )}
           {mode !== 'journal' && (
@@ -65,10 +71,14 @@ export default function App() {
           state={state}
           dispatch={dispatch}
           onOpenPlan={() => setMode('plan')}
+          onOpenToday={() => setMode('today')}
           backupPaused={backup.status === 'paused'}
           pendingCapture={pendingCapture}
           onCaptureConsumed={() => setPendingCapture(false)}
         />
+      )}
+      {mode === 'today' && (
+        <TodayView state={state} dispatch={dispatch} onDone={() => setMode('execute')} />
       )}
       {mode === 'plan' && <PlanningView state={state} dispatch={dispatch} backup={backup} />}
       {mode === 'journal' && <JournalView state={state} />}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { emptyState, reducer, Action } from './store';
-import { findCurrent, goalOf, remainingSteps } from './traversal';
+import { activeRoots, findCurrent, goalOf, remainingSteps, todayActive } from './traversal';
 import { AppState } from './types';
 
 function apply(state: AppState, ...actions: Action[]): AppState {
@@ -291,6 +291,70 @@ describe('reparenting', () => {
     expect(state.tasks[ids(state, 'BigW Ticket')].childIds).not.toContain(
       ids(state, 'Implement frontend'),
     );
+  });
+});
+
+describe("today's journey", () => {
+  function twoGoals(): AppState {
+    let state = apply(emptyState, { type: 'addGoal', title: 'BigW Ticket' });
+    state = apply(state, {
+      type: 'breakDown',
+      id: idOf(state, 'BigW Ticket'),
+      titles: ['Open file', 'Run tests'],
+    });
+    state = apply(state, { type: 'addGoal', title: 'SF Review' });
+    state = apply(state, {
+      type: 'breakDown',
+      id: idOf(state, 'SF Review'),
+      titles: ['Answer Q1'],
+    });
+    return state;
+  }
+
+  it('execution only walks the chosen goals while active', () => {
+    let state = twoGoals();
+    state = apply(state, { type: 'setToday', goalIds: [idOf(state, 'SF Review')] });
+    expect(todayActive(state)).toBe(true);
+    expect(findCurrent(state)).toBe(idOf(state, 'Answer Q1'));
+    // BigW comes first in rootIds but isn't in today, so it's skipped.
+    expect(activeRoots(state)).toEqual([idOf(state, 'SF Review')]);
+  });
+
+  it('a stale date (yesterday) means no filter', () => {
+    let state = twoGoals();
+    state = apply(state, { type: 'setToday', goalIds: [idOf(state, 'SF Review')] });
+    state = { ...state, today: { ...state.today!, date: '2000-01-01' } };
+    expect(todayActive(state)).toBe(false);
+    expect(findCurrent(state)).toBe(idOf(state, 'Open file')); // back to all goals
+  });
+
+  it('finishing today’s goals returns null even with other work left', () => {
+    let state = twoGoals();
+    state = apply(state, { type: 'setToday', goalIds: [idOf(state, 'SF Review')] });
+    state = apply(state, { type: 'done', id: idOf(state, 'Answer Q1') });
+    state = apply(state, { type: 'done', id: idOf(state, 'SF Review') });
+    expect(findCurrent(state)).toBeNull();
+    // But BigW still has steps, so the "more left" path is available.
+    expect(remainingSteps(state, idOf(state, 'BigW Ticket'))).toBe(2);
+  });
+
+  it('setToday ignores the Backlog and an empty pick clears the filter', () => {
+    let state = apply(twoGoals(), { type: 'capture', title: 'stray' });
+    state = apply(state, {
+      type: 'setToday',
+      goalIds: [state.inboxId!, idOf(state, 'BigW Ticket')],
+    });
+    expect(state.today!.goalIds).toEqual([idOf(state, 'BigW Ticket')]);
+    state = apply(state, { type: 'setToday', goalIds: [] });
+    expect(state.today).toBeNull();
+  });
+
+  it('clearToday drops the filter', () => {
+    let state = twoGoals();
+    state = apply(state, { type: 'setToday', goalIds: [idOf(state, 'SF Review')] });
+    state = apply(state, { type: 'clearToday' });
+    expect(state.today).toBeNull();
+    expect(findCurrent(state)).toBe(idOf(state, 'Open file'));
   });
 });
 

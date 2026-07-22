@@ -76,6 +76,17 @@ Notes:
   filesystem-like tree where you can add, rename, reorder, delete, annotate,
   and reopen tasks. Execution never looks like planning.
 
+### Today's journey
+
+An optional morning ritual (**Today** in the top nav): pick 1–3 goals to
+carry today, and execution walks only those — everything else rests, not
+deleted, not overdue, just waiting its turn. A finite, completable day
+beats an open-ended one; finishing today's picks shows a real "Today's
+journey, done" finish line instead of a treadmill. It's a lens you *can*
+put on, never a gate — skip it and every goal stays live, exactly as
+before. A quiet, dismissible morning prompt offers it when you have more
+than one goal in play; the filter auto-expires at the end of its day.
+
 ### Context helpers
 
 Hiding the hierarchy costs you context, so execution mode has four small

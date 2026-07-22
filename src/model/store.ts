@@ -1,3 +1,4 @@
+import { dayKey } from './dates';
 import { findCurrent, goalOf } from './traversal';
 import { AppState, HistoryEntry, Task, TaskStatus } from './types';
 
@@ -10,6 +11,7 @@ export const emptyState: AppState = {
   history: [],
   inboxId: null,
   parked: null,
+  today: null,
 };
 
 export type Action =
@@ -20,6 +22,8 @@ export type Action =
   | { type: 'nextGoal' }
   | { type: 'park'; note: string }
   | { type: 'resume' }
+  | { type: 'setToday'; goalIds: string[] }
+  | { type: 'clearToday' }
   | { type: 'done'; id: string }
   | { type: 'skip'; id: string }
   | { type: 'undo' }
@@ -215,6 +219,22 @@ export function reducer(state: AppState, action: Action): AppState {
       return state.parked ? { ...state, parked: null } : state;
     }
 
+    case 'setToday': {
+      // Commit to a handful of goals for today. Backlog can't be committed to,
+      // and an empty pick means "no filter" (all goals live).
+      const goalIds = action.goalIds.filter(
+        (id) => state.rootIds.includes(id) && id !== state.inboxId,
+      );
+      return {
+        ...state,
+        today: goalIds.length ? { date: dayKey(Date.now()), goalIds } : null,
+      };
+    }
+
+    case 'clearToday': {
+      return state.today ? { ...state, today: null } : state;
+    }
+
     case 'done': {
       const task = state.tasks[action.id];
       if (!task || task.status === 'done') return state;
@@ -338,7 +358,20 @@ export function reducer(state: AppState, action: Action): AppState {
         .filter((e) => e.changes.length > 0);
       const inboxId =
         state.inboxId && removed.has(state.inboxId) ? null : state.inboxId;
-      return { tasks, rootIds, history, inboxId, parked: state.parked };
+      const today = state.today
+        ? {
+            ...state.today,
+            goalIds: state.today.goalIds.filter((id) => !removed.has(id)),
+          }
+        : null;
+      return {
+        tasks,
+        rootIds,
+        history,
+        inboxId,
+        parked: state.parked,
+        today: today && today.goalIds.length ? today : null,
+      };
     }
 
     case 'move': {
@@ -425,6 +458,16 @@ function sanitize(raw: unknown): AppState {
       state.parked && typeof state.parked === 'object' &&
       typeof state.parked.at === 'number'
         ? { note: String(state.parked.note ?? ''), at: state.parked.at }
+        : null,
+    today:
+      state.today &&
+      typeof state.today === 'object' &&
+      typeof state.today.date === 'string' &&
+      Array.isArray(state.today.goalIds)
+        ? {
+            date: state.today.date,
+            goalIds: state.today.goalIds.filter((id) => tasks[id]),
+          }
         : null,
   };
 }

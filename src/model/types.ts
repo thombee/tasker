@@ -28,4 +28,7 @@ export interface AppState {
   // Set when the user "parks" for a break/day: an optional breadcrumb note.
   // While parked, the app rests on a calm screen showing only the next step.
   parked: { note: string; at: number } | null;
+  // Today's chosen journey: execution only traverses these goals while the
+  // date matches. Null (or a stale date) means no filter — all goals are live.
+  today: { date: string; goalIds: string[] } | null;
 }

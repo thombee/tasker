@@ -2,7 +2,7 @@ import { Dispatch, useEffect, useRef, useState } from 'react';
 import { completedToday, lastActiveDay } from '../model/journal';
 import { getPhoneTopic, sendParkPingSmart, sendResumePing } from '../model/phonePing';
 import { Action } from '../model/store';
-import { findCurrent, goalOf, remainingSteps } from '../model/traversal';
+import { findCurrent, goalOf, remainingSteps, todayActive } from '../model/traversal';
 import { AppState } from '../model/types';
 import { quoteOfTheDay } from '../quotes';
 
@@ -10,6 +10,7 @@ interface Props {
   state: AppState;
   dispatch: Dispatch<Action>;
   onOpenPlan: () => void;
+  onOpenToday: () => void;
   backupPaused: boolean;
   pendingCapture: boolean;
   onCaptureConsumed: () => void;
@@ -19,6 +20,7 @@ export default function ExecutionView({
   state,
   dispatch,
   onOpenPlan,
+  onOpenToday,
   backupPaused,
   pendingCapture,
   onCaptureConsumed,
@@ -37,6 +39,7 @@ export default function ExecutionView({
   const [parkOpen, setParkOpen] = useState(false);
   const [parkNote, setParkNote] = useState('');
   const [parkPingOk, setParkPingOk] = useState<boolean | null>(null);
+  const [morningDismissed, setMorningDismissed] = useState(false);
   const [donePulse, setDonePulse] = useState(0);
   const prevHistoryLength = useRef(state.history.length);
 
@@ -130,21 +133,52 @@ export default function ExecutionView({
   }
 
   if (!current) {
+    const onToday = todayActive(state);
+    // A goal exists with work left, just not in today's journey.
+    const moreLeft = state.rootIds.some(
+      (id) => id !== state.inboxId && remainingSteps(state, id) > 0,
+    );
     return (
       <main className="execution">
         <div className="stage">
           <div className="all-done">
             <p className="all-done-mark">✓</p>
-            <h1>That's everything.</h1>
-            <p className="muted">Nothing left to do. Enjoy the quiet.</p>
-            <button className="ghost" onClick={onOpenPlan}>
-              Plan what's next
-            </button>
+            <h1>{onToday ? "Today's journey, done." : "That's everything."}</h1>
+            <p className="muted">
+              {onToday
+                ? 'The rest can wait for another day. Well done.'
+                : 'Nothing left to do. Enjoy the quiet.'}
+            </p>
+            {onToday && moreLeft ? (
+              <div className="row">
+                <button className="ghost" onClick={onOpenToday}>
+                  Add to today
+                </button>
+                <button
+                  className="ghost"
+                  onClick={() => dispatch({ type: 'clearToday' })}
+                >
+                  Keep going anyway
+                </button>
+              </div>
+            ) : (
+              <button className="ghost" onClick={onOpenPlan}>
+                Plan what's next
+              </button>
+            )}
           </div>
         </div>
       </main>
     );
   }
+
+  // Morning prompt: offer the ritual when no journey is set and there's a
+  // real choice to make. Quiet and dismissible — never a gate.
+  const goalsWithWork = state.rootIds.filter(
+    (id) => id !== state.inboxId && remainingSteps(state, id) > 0,
+  );
+  const showMorningPrompt =
+    !todayActive(state) && !morningDismissed && goalsWithWork.length >= 2;
 
   const parent = current.parentId ? state.tasks[current.parentId] : null;
 
@@ -266,6 +300,18 @@ export default function ExecutionView({
       )}
 
       <div className="stage">
+        {showMorningPrompt && (
+          <div className="morning-prompt">
+            <span>Set today's journey?</span>
+            <button className="link" onClick={onOpenToday}>
+              Choose
+            </button>
+            <button className="link" onClick={() => setMorningDismissed(true)}>
+              not now
+            </button>
+          </div>
+        )}
+
         {recap && (
           <div className="recap">
             <p className="recap-head">
@@ -474,13 +520,22 @@ export default function ExecutionView({
 
       <footer className="goal-line">
         <div className="footer-main">
-          {goal && goal.id !== current.id ? (
-            <p className="footer-goal">
-              <span className="muted">Goal</span> {goal.title}
-            </p>
-          ) : (
-            <span />
-          )}
+          <p className="footer-goal">
+            {todayActive(state) && (
+              <button
+                className="today-chip"
+                title="Today's journey — tap to change"
+                onClick={onOpenToday}
+              >
+                Today
+              </button>
+            )}
+            {goal && goal.id !== current.id && (
+              <>
+                <span className="muted">Goal</span> {goal.title}
+              </>
+            )}
+          </p>
           <div className="footer-actions">
             <button className="link" onClick={() => setScratchOpen((open) => !open)}>
               {goal?.notes ? 'notes •' : 'notes'}

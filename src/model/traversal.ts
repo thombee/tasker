@@ -1,10 +1,30 @@
+import { dayKey } from './dates';
 import { AppState, Task } from './types';
+
+// Is a "today's journey" filter in effect for the given day?
+export function todayActive(state: AppState, now = Date.now()): boolean {
+  return !!(
+    state.today &&
+    state.today.date === dayKey(now) &&
+    state.today.goalIds.length > 0
+  );
+}
+
+// The goals execution should walk: today's chosen set when active (in
+// rootIds order), otherwise every goal.
+export function activeRoots(state: AppState, now = Date.now()): string[] {
+  if (todayActive(state, now)) {
+    const set = new Set(state.today!.goalIds);
+    return state.rootIds.filter((id) => set.has(id));
+  }
+  return state.rootIds;
+}
 
 // The heart of execution mode: walk the tree and land on the smallest
 // unfinished task. If a node has an incomplete child, descend; otherwise
 // the node itself is the current task.
-export function findCurrent(state: AppState): string | null {
-  for (const rootId of state.rootIds) {
+export function findCurrent(state: AppState, now = Date.now()): string | null {
+  for (const rootId of activeRoots(state, now)) {
     const found = descend(state, rootId);
     if (found) return found;
   }
