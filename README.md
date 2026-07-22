@@ -108,13 +108,11 @@ in the footer.
 
 ## Deliberate design decisions
 
-- **Parents auto-complete** when their last child is marked done, and this
-  cascades upward — finishing the last tiny step of a goal finishes the goal.
-  You never re-confirm work you already did. (One press of ← Previous undoes
-  the whole cascade.)
-- **Skipped children block auto-completion.** If a task's children are all
-  done-or-skipped but some were skipped, the task itself surfaces as the
-  current task and asks "is this finished?" — you decide.
+- **Parents are never auto-completed.** Subtasks are often just the *next*
+  steps, not the whole job — breaking down lazily is the intended workflow.
+  So when a task's children are all handled, the task itself surfaces as
+  the current task and asks "done, or is there more?" — press Done to
+  confirm it, or Too Big to feed it the next steps you now know about.
 - **No percentages, no overdue badges, no counts.** Progress is narrative:
   what goal you're in, what step you're on, what you just finished.
 - **Manual breakdown only** (for now). Pressing Too Big asks *you* for the

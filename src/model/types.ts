@@ -15,8 +15,6 @@ export interface Task {
 
 export interface HistoryEntry {
   kind: 'done' | 'skip';
-  // A single Done can cascade upward (parent auto-completes when all its
-  // children are done), so one entry may hold several status changes.
   changes: { id: string; prevStatus: TaskStatus }[];
 }
 

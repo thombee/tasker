@@ -128,8 +128,8 @@ export default function ExecutionView({ state, dispatch, onOpenPlan, backupPause
     parent.id !== goal.id &&
     remainingSteps(state, parent.id) === 1;
 
-  // A parent surfaces only when every child is done or skipped but at least
-  // one was skipped — the user decides whether it's really finished.
+  // A parent surfaces when every child is done or skipped — the user decides
+  // whether it's really finished (Done) or just under-planned (Too Big).
   const isSurfacedParent = current.childIds.length > 0;
   const skippedInside = current.childIds.filter(
     (c) => state.tasks[c].status === 'skipped',
@@ -206,7 +206,8 @@ export default function ExecutionView({ state, dispatch, onOpenPlan, backupPause
         {isSurfacedParent && (
           <p className="muted small">
             Every step inside is handled
-            {skippedInside > 0 && ` (${skippedInside} skipped)`} — is this finished?
+            {skippedInside > 0 && ` (${skippedInside} skipped)`} — done, or is
+            there more?
           </p>
         )}
       </div>

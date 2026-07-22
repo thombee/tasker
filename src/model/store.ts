@@ -117,26 +117,17 @@ export function reducer(state: AppState, action: Action): AppState {
     case 'done': {
       const task = state.tasks[action.id];
       if (!task || task.status === 'done') return state;
-      const tasks = { ...state.tasks };
-      const changes: HistoryEntry['changes'] = [{ id: task.id, prevStatus: task.status }];
-      tasks[task.id] = { ...task, status: 'done', completedAt: Date.now() };
-      // Cascade upward: a parent whose children are now all done is finished
-      // too — the user never has to re-confirm work they already did.
-      let parentId = task.parentId;
-      while (parentId) {
-        const parent = tasks[parentId];
-        if (
-          parent.status === 'todo' &&
-          parent.childIds.every((c) => tasks[c].status === 'done')
-        ) {
-          changes.push({ id: parent.id, prevStatus: parent.status });
-          tasks[parent.id] = { ...parent, status: 'done', completedAt: Date.now() };
-          parentId = parent.parentId;
-        } else {
-          break;
-        }
-      }
-      return pushHistory({ ...state, tasks }, { kind: 'done', changes });
+      // Parents are never auto-completed: subtasks are often only the *next*
+      // step, not the whole job. When the last child finishes, the traversal
+      // surfaces the parent itself and the user confirms — Done or Too Big.
+      const tasks = {
+        ...state.tasks,
+        [task.id]: { ...task, status: 'done' as TaskStatus, completedAt: Date.now() },
+      };
+      return pushHistory({ ...state, tasks }, {
+        kind: 'done',
+        changes: [{ id: task.id, prevStatus: task.status }],
+      });
     }
 
     case 'skip': {

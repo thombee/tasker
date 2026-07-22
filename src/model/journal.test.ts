@@ -35,7 +35,8 @@ describe('journal', () => {
     let state = buildState();
     state = completeAt(state, 'Open file', NOW - 2 * DAY);
     state = completeAt(state, 'Add parameter', NOW - DAY);
-    state = completeAt(state, 'Run tests', NOW - DAY); // cascades: goal done too
+    state = completeAt(state, 'Run tests', NOW - DAY);
+    state = completeAt(state, 'BigW Ticket', NOW - DAY); // confirmed by the user
     const days = summarizeDays(state, NOW);
     expect(days).toHaveLength(2);
     expect(days[0].label).toBe('Yesterday');

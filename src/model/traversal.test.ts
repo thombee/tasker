@@ -44,14 +44,30 @@ describe('findCurrent', () => {
     expect(findCurrent(state)).toBe(idOf(state, 'Add parameter'));
   });
 
-  it('crosses branches when one is finished', () => {
+  it('surfaces the parent for confirmation when all children are done', () => {
     let state = buildJourney();
     state = apply(
       state,
       { type: 'done', id: idOf(state, 'Open endpoint file') },
       { type: 'done', id: idOf(state, 'Add parameter') },
     );
+    // Subtasks may only have been the *next* steps, not the whole job — the
+    // parent is never auto-completed; the user confirms it.
+    expect(state.tasks[idOf(state, 'Implement backend')].status).toBe('todo');
+    expect(findCurrent(state)).toBe(idOf(state, 'Implement backend'));
+    state = apply(state, { type: 'done', id: idOf(state, 'Implement backend') });
     expect(findCurrent(state)).toBe(idOf(state, 'Implement frontend'));
+  });
+
+  it('a confirmed parent stays confirmable with more steps via breakDown', () => {
+    let state = buildJourney();
+    state = apply(
+      state,
+      { type: 'done', id: idOf(state, 'Open endpoint file') },
+      { type: 'done', id: idOf(state, 'Add parameter') },
+      { type: 'breakDown', id: idOf(state, 'Implement backend'), titles: ['Write tests'] },
+    );
+    expect(findCurrent(state)).toBe(idOf(state, 'Write tests'));
   });
 
   it('skipped tasks are stepped over', () => {
@@ -81,30 +97,16 @@ describe('findCurrent', () => {
       state,
       { type: 'done', id: idOf(state, 'Open endpoint file') },
       { type: 'done', id: idOf(state, 'Add parameter') },
+      { type: 'done', id: idOf(state, 'Implement backend') },
       { type: 'done', id: idOf(state, 'Implement frontend') },
+      { type: 'done', id: idOf(state, 'BigW Ticket') },
     );
     expect(findCurrent(state)).toBe(idOf(state, 'SuccessFactors Review'));
   });
 });
 
-describe('done cascade', () => {
-  it('auto-completes ancestors when the last child finishes', () => {
-    let state = buildJourney();
-    state = apply(
-      state,
-      { type: 'done', id: idOf(state, 'Open endpoint file') },
-      { type: 'done', id: idOf(state, 'Add parameter') },
-    );
-    expect(state.tasks[idOf(state, 'Implement backend')].status).toBe('done');
-    // Goal itself is not done — frontend remains.
-    expect(state.tasks[idOf(state, 'BigW Ticket')].status).toBe('todo');
-    state = apply(state, { type: 'done', id: idOf(state, 'Implement frontend') });
-    expect(state.tasks[idOf(state, 'BigW Ticket')].status).toBe('done');
-  });
-});
-
 describe('undo', () => {
-  it('reverses a cascaded done in one step', () => {
+  it('reverses the last done', () => {
     let state = buildJourney();
     state = apply(
       state,
@@ -113,7 +115,6 @@ describe('undo', () => {
     );
     state = apply(state, { type: 'undo' });
     expect(state.tasks[idOf(state, 'Add parameter')].status).toBe('todo');
-    expect(state.tasks[idOf(state, 'Implement backend')].status).toBe('todo');
     expect(state.tasks[idOf(state, 'Open endpoint file')].status).toBe('done');
     expect(findCurrent(state)).toBe(idOf(state, 'Add parameter'));
   });
@@ -188,6 +189,7 @@ describe('planning edits', () => {
       state,
       { type: 'done', id: idOf(state, 'Open endpoint file') },
       { type: 'done', id: idOf(state, 'Add parameter') },
+      { type: 'done', id: idOf(state, 'Implement backend') },
     );
     state = apply(state, {
       type: 'setStatus',
@@ -228,7 +230,10 @@ describe('remainingSteps', () => {
     expect(remainingSteps(state, idOf(state, 'Implement backend'))).toBe(1);
     expect(remainingSteps(state, idOf(state, 'BigW Ticket'))).toBe(2);
     state = apply(state, { type: 'done', id: idOf(state, 'Add parameter') });
-    expect(remainingSteps(state, idOf(state, 'BigW Ticket'))).toBe(1);
+    // The parent itself still needs confirmation, so it counts as one step.
+    expect(remainingSteps(state, idOf(state, 'Implement backend'))).toBe(1);
+    state = apply(state, { type: 'done', id: idOf(state, 'Implement backend') });
     expect(remainingSteps(state, idOf(state, 'Implement backend'))).toBe(0);
+    expect(remainingSteps(state, idOf(state, 'BigW Ticket'))).toBe(1);
   });
 });
