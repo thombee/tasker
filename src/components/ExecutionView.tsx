@@ -24,6 +24,8 @@ export default function ExecutionView({ state, dispatch, onOpenPlan, backupPause
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');
   const [showKeys, setShowKeys] = useState(false);
+  const [parkOpen, setParkOpen] = useState(false);
+  const [parkNote, setParkNote] = useState('');
   const [donePulse, setDonePulse] = useState(0);
   const prevHistoryLength = useRef(state.history.length);
 
@@ -78,6 +80,10 @@ export default function ExecutionView({ state, dispatch, onOpenPlan, backupPause
     function onKey(e: KeyboardEvent) {
       const target = e.target as HTMLElement;
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
+      if (state.parked) {
+        if (e.key === 'Enter' || e.key === 'r') dispatch({ type: 'resume' });
+        return;
+      }
       if (breakingDown) {
         if (e.key === 'Escape') setBreakingDown(false);
         return;
@@ -97,7 +103,7 @@ export default function ExecutionView({ state, dispatch, onOpenPlan, backupPause
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [current, breakingDown, canUndo, dispatch]);
+  }, [current, breakingDown, canUndo, dispatch, state.parked]);
 
   if (state.rootIds.length === 0) {
     return <FirstGoal dispatch={dispatch} />;
@@ -167,6 +173,32 @@ export default function ExecutionView({ state, dispatch, onOpenPlan, backupPause
     }
     setCaptureText('');
     setCaptureOpen(false);
+  }
+
+  // While parked, the whole screen rests on the next step — nothing else.
+  // The exit-memory (and the return-memory) is the microtask, not the goal.
+  if (state.parked) {
+    return (
+      <main className="execution">
+        <div className="stage">
+          <div className="current-card parked-card">
+            <p className="parked-mark">☾</p>
+            <p className="label">Parked</p>
+            <p className="muted small">When you come back, it's just:</p>
+            <h1 className="task-title">{current.title}</h1>
+            {state.parked.note && <p className="notes">“{state.parked.note}”</p>}
+            <p className="muted small parked-reassure">
+              It's written down. You don't have to carry it.
+            </p>
+            <div className="controls">
+              <button className="primary" onClick={() => dispatch({ type: 'resume' })}>
+                I'm back
+              </button>
+            </div>
+          </div>
+        </div>
+      </main>
+    );
   }
 
   return (
@@ -321,6 +353,43 @@ export default function ExecutionView({ state, dispatch, onOpenPlan, backupPause
           )}
         </div>
 
+        {parkOpen && (
+          <div className="capture">
+            <p className="muted small">
+              Stepping away? Your next step is safe: <strong>{current.title}</strong>
+            </p>
+            <input
+              autoFocus
+              value={parkNote}
+              onChange={(e) => setParkNote(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  dispatch({ type: 'park', note: parkNote });
+                  setParkNote('');
+                  setParkOpen(false);
+                }
+                if (e.key === 'Escape') setParkOpen(false);
+              }}
+              placeholder="Breadcrumb for future you (optional)…"
+            />
+            <div className="row">
+              <button
+                className="primary"
+                onClick={() => {
+                  dispatch({ type: 'park', note: parkNote });
+                  setParkNote('');
+                  setParkOpen(false);
+                }}
+              >
+                Park it
+              </button>
+              <button className="ghost" onClick={() => setParkOpen(false)}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
         {captureOpen && (
           <div className="capture">
             <input
@@ -383,6 +452,13 @@ export default function ExecutionView({ state, dispatch, onOpenPlan, backupPause
                 switch goal →
               </button>
             )}
+            <button
+              className="link"
+              title="Stepping away? Park with a breadcrumb for future you"
+              onClick={() => setParkOpen(true)}
+            >
+              park ☾
+            </button>
             <button
               className="link"
               title="Keyboard shortcuts"

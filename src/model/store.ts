@@ -9,6 +9,7 @@ export const emptyState: AppState = {
   rootIds: [],
   history: [],
   inboxId: null,
+  parked: null,
 };
 
 export type Action =
@@ -17,6 +18,8 @@ export type Action =
   | { type: 'breakDown'; id: string; titles: string[] }
   | { type: 'capture'; title: string }
   | { type: 'nextGoal' }
+  | { type: 'park'; note: string }
+  | { type: 'resume' }
   | { type: 'done'; id: string }
   | { type: 'skip'; id: string }
   | { type: 'undo' }
@@ -132,6 +135,14 @@ export function reducer(state: AppState, action: Action): AppState {
       return { ...state, rootIds };
     }
 
+    case 'park': {
+      return { ...state, parked: { note: action.note.trim(), at: Date.now() } };
+    }
+
+    case 'resume': {
+      return state.parked ? { ...state, parked: null } : state;
+    }
+
     case 'done': {
       const task = state.tasks[action.id];
       if (!task || task.status === 'done') return state;
@@ -142,7 +153,8 @@ export function reducer(state: AppState, action: Action): AppState {
         ...state.tasks,
         [task.id]: { ...task, status: 'done' as TaskStatus, completedAt: Date.now() },
       };
-      return pushHistory({ ...state, tasks }, {
+      // Acting on a task means the user is back — clear any parked state.
+      return pushHistory({ ...state, tasks, parked: null }, {
         kind: 'done',
         changes: [{ id: task.id, prevStatus: task.status }],
       });
@@ -155,7 +167,7 @@ export function reducer(state: AppState, action: Action): AppState {
         ...state.tasks,
         [task.id]: { ...task, status: 'skipped' as TaskStatus },
       };
-      return pushHistory({ ...state, tasks }, {
+      return pushHistory({ ...state, tasks, parked: null }, {
         kind: 'skip',
         changes: [{ id: task.id, prevStatus: task.status }],
       });
@@ -254,7 +266,7 @@ export function reducer(state: AppState, action: Action): AppState {
         .filter((e) => e.changes.length > 0);
       const inboxId =
         state.inboxId && removed.has(state.inboxId) ? null : state.inboxId;
-      return { tasks, rootIds, history, inboxId };
+      return { tasks, rootIds, history, inboxId, parked: state.parked };
     }
 
     case 'move': {
@@ -301,6 +313,11 @@ function sanitize(raw: unknown): AppState {
     inboxId:
       typeof state.inboxId === 'string' && state.tasks[state.inboxId]
         ? state.inboxId
+        : null,
+    parked:
+      state.parked && typeof state.parked === 'object' &&
+      typeof state.parked.at === 'number'
+        ? { note: String(state.parked.note ?? ''), at: state.parked.at }
         : null,
   };
 }

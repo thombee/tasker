@@ -467,6 +467,23 @@ textarea {
   color: var(--faint);
 }
 
+/* ---- parked ---- */
+
+.parked-mark {
+  font-size: 1.8rem;
+  color: var(--faint);
+  margin-bottom: 0.4rem;
+}
+
+.parked-card .task-title {
+  margin-top: 0.6rem;
+}
+
+.parked-reassure {
+  margin-top: 1rem;
+  margin-bottom: 1.2rem;
+}
+
 /* ---- done pulse ---- */
 
 .done-pulse {

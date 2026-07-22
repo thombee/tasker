@@ -210,6 +210,21 @@ describe('nextGoal', () => {
   });
 });
 
+describe('park', () => {
+  it('stores the breadcrumb and clears on resume', () => {
+    let state = apply(buildJourney(), { type: 'park', note: '  left off mid-refactor ' });
+    expect(state.parked?.note).toBe('left off mid-refactor');
+    state = apply(state, { type: 'resume' });
+    expect(state.parked).toBeNull();
+  });
+
+  it('acting on a task clears the parked state', () => {
+    let state = apply(buildJourney(), { type: 'park', note: '' });
+    state = apply(state, { type: 'done', id: idOf(state, 'Open endpoint file') });
+    expect(state.parked).toBeNull();
+  });
+});
+
 describe('planning edits', () => {
   it('reopening a task reopens its done ancestors', () => {
     let state = buildJourney();

@@ -99,6 +99,14 @@ tools for externalized working memory:
   work left): moves on to the next goal *without skipping anything* — the
   current goal just rotates to the back of the journey and will come
   around again.
+- **Park** ("park ☾" in the footer): a closing ritual for stepping away.
+  It shows you your exact next step, takes an optional one-line breadcrumb,
+  and rests on a calm screen — "when you come back, it's just: *open the
+  file*. It's written down; you don't have to carry it." Research on goal
+  rumination shows unfinished work stops intruding on your thoughts once a
+  specific next step is externalized — parking makes the *microtask* your
+  exit-memory instead of the whole scary goal. Doing anything (Done/Skip)
+  or pressing "I'm back" resumes.
 
 Keyboard shortcuts in execution mode: `d`/`Enter` done · `b` break down ·
 `s` skip · `z` previous · `n` notes · `c` capture · `g` switch goal.

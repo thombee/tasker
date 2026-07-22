@@ -25,4 +25,7 @@ export interface AppState {
   // Root task that quick-captured stray thoughts land in; created on first
   // capture and kept as the last goal so it never jumps the queue.
   inboxId: string | null;
+  // Set when the user "parks" for a break/day: an optional breadcrumb note.
+  // While parked, the app rests on a calm screen showing only the next step.
+  parked: { note: string; at: number } | null;
 }
