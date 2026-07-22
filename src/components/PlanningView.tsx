@@ -1,5 +1,6 @@
 import { ChangeEvent, Dispatch, useRef, useState } from 'react';
 import { FileBackup } from '../hooks/useFileBackup';
+import { getGroqKey, saveGroqKey, testGroq } from '../model/aiSummary';
 import {
   getPhoneTopic,
   pingUrl,
@@ -20,7 +21,17 @@ export default function PlanningView({ state, dispatch, backup }: Props) {
   const [newGoal, setNewGoal] = useState('');
   const [phoneTopic, setPhoneTopic] = useState(getPhoneTopic);
   const [pingStatus, setPingStatus] = useState<string | null>(null);
+  const [groqKey, setGroqKey] = useState(getGroqKey);
+  const [groqStatus, setGroqStatus] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  async function testGroqKey() {
+    setGroqStatus('testing…');
+    const result = await testGroq();
+    setGroqStatus(
+      result.ok ? 'connected ✓' : `not connected — ${result.error}`,
+    );
+  }
 
   async function sendTestPing() {
     setPingStatus('sending…');
@@ -192,6 +203,37 @@ export default function PlanningView({ state, dispatch, backup }: Props) {
           )}
         </div>
         {pingStatus && <p className="muted small">{pingStatus}</p>}
+      </div>
+
+      <div className="backup-section">
+        <p className="muted small">
+          AI summary (optional): the Journal can tidy a day's finished tasks into
+          standup-ready bullet points. It uses <strong>Groq</strong>, which is
+          free — make a key at{' '}
+          <button
+            className="link inline"
+            onClick={() => window.open('https://console.groq.com/keys', '_blank')}
+          >
+            console.groq.com/keys
+          </button>{' '}
+          and paste it here.
+        </p>
+        <div className="row backup">
+          <input
+            type="password"
+            value={groqKey}
+            onChange={(e) => {
+              setGroqKey(e.target.value);
+              saveGroqKey(e.target.value);
+              setGroqStatus(null);
+            }}
+            placeholder="gsk_…"
+          />
+          <button className="ghost" disabled={!groqKey.trim()} onClick={testGroqKey}>
+            Test
+          </button>
+        </div>
+        {groqStatus && <p className="muted small">{groqStatus}</p>}
       </div>
     </main>
   );

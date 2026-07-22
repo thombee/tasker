@@ -36,6 +36,26 @@ ipcMain.handle('tasker:ping', async (_event, url, init) => {
   }
 });
 
+// General POST for API calls (e.g. the Groq summary) — full response body,
+// session cookies, no CORS. Restricted to https.
+ipcMain.handle('tasker:api', async (_event, url, init) => {
+  try {
+    if (typeof url !== 'string' || !/^https:\/\//i.test(url)) {
+      return { status: 0, body: 'invalid url' };
+    }
+    const response = await session.defaultSession.fetch(url, {
+      method: 'POST',
+      credentials: 'include',
+      headers: init && typeof init.headers === 'object' ? init.headers : {},
+      body: init && typeof init.body === 'string' ? init.body : '',
+    });
+    const body = (await response.text()).slice(0, 100000);
+    return { status: response.status, body };
+  } catch (err) {
+    return { status: 0, body: String(err).slice(0, 300) };
+  }
+});
+
 // Opens a normal in-app window so the user can complete their network
 // filter's sign-in (the session cookie then applies to pings). Resolves
 // true once the window actually reaches the destination origin — i.e.

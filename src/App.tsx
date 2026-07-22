@@ -81,7 +81,9 @@ export default function App() {
         <TodayView state={state} dispatch={dispatch} onDone={() => setMode('execute')} />
       )}
       {mode === 'plan' && <PlanningView state={state} dispatch={dispatch} backup={backup} />}
-      {mode === 'journal' && <JournalView state={state} />}
+      {mode === 'journal' && (
+        <JournalView state={state} onOpenPlan={() => setMode('plan')} />
+      )}
     </div>
   );
 }

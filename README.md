@@ -124,6 +124,16 @@ tools for externalized working memory:
 Keyboard shortcuts in execution mode: `d`/`Enter` done · `b` break down ·
 `s` skip · `z` previous · `n` notes · `c` capture · `g` switch goal.
 
+### AI summary (optional, free)
+
+Each day in the Journal has a **✨ summarize** action that rewrites your
+finished tasks into tidy standup-ready bullet points. It uses
+[Groq](https://console.groq.com/keys), which is free: make a key, paste it
+into **Plan → AI summary**, and hit Test. Nothing is ever sent unless you
+click summarize; the key is stored locally and (in the desktop app) the
+call routes through the main process, so it works behind corporate proxies.
+Your task titles pass through Groq's servers, so keep them non-sensitive.
+
 ### Journal
 
 The **Journal** view (top-right) lists what you finished, day by day —

@@ -894,9 +894,31 @@ textarea {
   gap: 0.6rem;
 }
 
-.journal-copy {
+.journal-day-actions {
   margin-left: auto;
+  display: flex;
+  gap: 0.4rem;
+}
+
+.journal-day-actions .link {
   font-size: 0.78rem;
+}
+
+.ai-summary {
+  margin: 0.4rem 0 0.6rem;
+  padding: 0.7rem 0.9rem;
+  background: var(--soft);
+  border-radius: 12px;
+  animation: rise 0.25s ease;
+}
+
+.ai-text {
+  font-family: inherit;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin-bottom: 0.4rem;
 }
 
 .journal-count {

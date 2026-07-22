@@ -6,6 +6,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 // matters behind corporate proxies.
 contextBridge.exposeInMainWorld('taskerNative', {
   ping: (url, init) => ipcRenderer.invoke('tasker:ping', url, init),
+  apiCall: (url, init) => ipcRenderer.invoke('tasker:api', url, init),
   openAuth: (url) => ipcRenderer.invoke('tasker:open-auth', url),
   onQuickCapture: (cb) => {
     const handler = () => cb();

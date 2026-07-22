@@ -1,21 +1,47 @@
 import { useState } from 'react';
+import { getGroqKey, summarizeDay } from '../model/aiSummary';
 import { daySummaryText, DayGroup, heatLevel, heatmap, summarizeDays } from '../model/journal';
 import { AppState } from '../model/types';
 
-export default function JournalView({ state }: { state: AppState }) {
+interface Props {
+  state: AppState;
+  onOpenPlan: () => void;
+}
+
+export default function JournalView({ state, onOpenPlan }: Props) {
   const days = summarizeDays(state);
   const grid = heatmap(state);
   const [copied, setCopied] = useState<string | null>(null);
+  const [aiDay, setAiDay] = useState<string | null>(null);
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiText, setAiText] = useState('');
+  const [aiError, setAiError] = useState('');
 
-  function copyDay(day: DayGroup) {
-    const text = daySummaryText(day);
+  function copyText(text: string, tag: string) {
     void navigator.clipboard?.writeText(text).then(
       () => {
-        setCopied(day.key);
-        setTimeout(() => setCopied((k) => (k === day.key ? null : k)), 2000);
+        setCopied(tag);
+        setTimeout(() => setCopied((k) => (k === tag ? null : k)), 2000);
       },
       () => setCopied(null),
     );
+  }
+
+  async function summarize(day: DayGroup) {
+    if (!getGroqKey()) {
+      setAiDay(day.key);
+      setAiText('');
+      setAiError('needs-key');
+      return;
+    }
+    setAiDay(day.key);
+    setAiText('');
+    setAiError('');
+    setAiBusy(true);
+    const result = await summarizeDay(daySummaryText(day));
+    setAiBusy(false);
+    if (result.ok) setAiText(result.text);
+    else setAiError(result.error || 'Something went wrong');
   }
 
   const totalDaysActive = grid.flat().filter((c) => c.count > 0).length;
@@ -64,14 +90,52 @@ export default function JournalView({ state }: { state: AppState }) {
             <span className="muted journal-count">
               {day.steps.length} step{day.steps.length === 1 ? '' : 's'}
             </span>
-            <button
-              className="link journal-copy"
-              title="Copy a plain-text recap — paste into a standup or 1:1"
-              onClick={() => copyDay(day)}
-            >
-              {copied === day.key ? 'copied ✓' : 'copy'}
-            </button>
+            <span className="journal-day-actions">
+              <button
+                className="link"
+                title="AI-tidy this day into standup bullets (Groq)"
+                onClick={() => summarize(day)}
+              >
+                ✨ summarize
+              </button>
+              <button
+                className="link"
+                title="Copy a plain-text recap — paste into a standup or 1:1"
+                onClick={() => copyText(daySummaryText(day), `plain-${day.key}`)}
+              >
+                {copied === `plain-${day.key}` ? 'copied ✓' : 'copy'}
+              </button>
+            </span>
           </h3>
+
+          {aiDay === day.key && (
+            <div className="ai-summary">
+              {aiBusy && <p className="muted small">summarizing…</p>}
+              {!aiBusy && aiError === 'needs-key' && (
+                <p className="muted small">
+                  Add a free Groq key first —{' '}
+                  <button className="link inline" onClick={onOpenPlan}>
+                    open Plan
+                  </button>
+                </p>
+              )}
+              {!aiBusy && aiError && aiError !== 'needs-key' && (
+                <p className="muted small">couldn't summarize — {aiError}</p>
+              )}
+              {!aiBusy && aiText && (
+                <>
+                  <pre className="ai-text">{aiText}</pre>
+                  <button
+                    className="link"
+                    onClick={() => copyText(aiText, `ai-${day.key}`)}
+                  >
+                    {copied === `ai-${day.key}` ? 'copied ✓' : 'copy summary'}
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+
           {day.finished.length > 0 && (
             <p className="journal-finished">finished: {day.finished.join(' · ')}</p>
           )}
