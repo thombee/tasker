@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  launchd agent for the nudger. Runs the script hourly. The script itself
+  decides whether the current time falls in your morning/night window and
+  whether to nudge — running hourly just guarantees your ✓/✗ taps get read
+  back within the hour (well inside ntfy.sh's ~12h message cache).
+
+  SETUP (edit the two paths below first):
+    1. Set the full path to `node` — find it with:  which node
+    2. Set the full path to nudge.mjs on your Mac.
+    3. Copy this file to ~/Library/LaunchAgents/com.tasker.nudge.plist
+    4. launchctl load ~/Library/LaunchAgents/com.tasker.nudge.plist
+       (to stop later: launchctl unload ~/Library/LaunchAgents/com.tasker.nudge.plist)
+
+  Hourly wakeups are negligible power. If the Mac is asleep at the fire
+  time, launchd runs the job on the next wake.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.tasker.nudge</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/REPLACE/with/path/to/node</string>
+        <string>/REPLACE/with/path/to/tasker/nudge/nudge.mjs</string>
+    </array>
+
+    <key>StartInterval</key>
+    <integer>3600</integer>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>/tmp/nudge.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/nudge.err</string>
+</dict>
+</plist>

@@ -3,3 +3,7 @@ dist/
 release/
 *.log
 .DS_Store
+
+# nudge runtime data — personal topics + your answers, stay local
+nudge/config.json
+nudge/state.json

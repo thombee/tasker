@@ -1,0 +1,80 @@
+{
+  "server": "https://ntfy.sh",
+  "topic": "REPLACE-with-your-nudge-topic",
+  "tapsTopic": "REPLACE-with-your-taps-topic",
+
+  "jitterMinutes": 8,
+
+  "windows": {
+    "morning": { "start": "07:45", "end": "09:30" },
+    "night": { "start": "21:30", "end": "23:59" }
+  },
+
+  "silenceAfterGood": 3,
+  "silenceDays": 2,
+
+  "completionBackstop": {
+    "enabled": false,
+    "taskerFile": "/Users/you/Library/Application Support/tasker/your-tasker-data.json",
+    "staleDays": 4
+  },
+
+  "lines": {
+    "morning": {
+      "level0": [
+        "In today? Remember — 'too busy to go in' is the signal, not the reason.",
+        "Office run? The busier it feels, the more that feeling IS the reason to go.",
+        "Going in? Leaving the room is usually the thing that turns the day around.",
+        "In or out today? If 'out' feels obvious, that's exactly when 'in' helps most.",
+        "Heading in? You rarely regret the commute. You regret the day you stayed home.",
+        "Office today? One decision, and the rest of the day leans on it.",
+        "In today? Going in isn't lost work time — it's the thing that unlocks the work.",
+        "Morning. Same office you, better than the one alone in the room all day."
+      ],
+      "level1": [
+        "Morning. Office today? No wrong answer.",
+        "In or out today? Just checking in.",
+        "Going in? Tap whenever."
+      ],
+      "level2": [
+        "Still here. Whenever you're ready.",
+        "No pressure today — just saying hi.",
+        "Here if you want it."
+      ],
+      "level3": [
+        "☾ around, no rush.",
+        "Here when you are."
+      ],
+      "streakOut": [
+        "Couple mornings home now. No judgment — but the room's where the spiral likes you. In today?",
+        "A few days out of the office. That's usually the thing to break first. Want to go in?",
+        "Been home a bit. Going in isn't about the work — it's about not being alone with it. In today?"
+      ]
+    },
+    "night": {
+      "level0": [
+        "Calling it tonight? A normal tomorrow beats a heroic 3am.",
+        "Winding down? Finishing everything tonight isn't the job — being okay tomorrow is.",
+        "Still going? The urge to stay up and finish it all — that urge IS the sign.",
+        "Bed soon? The 3am plan feels productive and never is. Rested-you is stronger.",
+        "'One more hour' is how tomorrow gets wrecked. You're allowed to stop.",
+        "Night. Stopping now is the productive move, even when it doesn't feel like one.",
+        "You don't have to finish today. You have to be able to face tomorrow.",
+        "Wind-down check. Sleep is the work tonight."
+      ],
+      "level1": [
+        "Getting late. Calling it soon?",
+        "Night check-in. Rest counts as progress.",
+        "Normal bedtime tonight? Tap either way."
+      ],
+      "level2": [
+        "Whenever you turn in — no pressure.",
+        "Here. Sleep well when you get there."
+      ],
+      "level3": [
+        "☾ night.",
+        "Rest easy."
+      ]
+    }
+  }
+}
