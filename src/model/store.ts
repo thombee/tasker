@@ -240,7 +240,7 @@ export function reducer(state: AppState, action: Action): AppState {
       if (!task || task.status === 'done') return state;
       // Parents are never auto-completed: subtasks are often only the *next*
       // step, not the whole job. When the last child finishes, the traversal
-      // surfaces the parent itself and the user confirms — Done or Too Big.
+      // surfaces the parent itself and the user confirms — Done or Too Daunting.
       const tasks = {
         ...state.tasks,
         [task.id]: { ...task, status: 'done' as TaskStatus, completedAt: Date.now() },

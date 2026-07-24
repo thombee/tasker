@@ -439,7 +439,7 @@ export default function ExecutionView({
                 {isSurfacedParent ? '✓ Finished' : 'Done'}
               </button>
               <button className="secondary" onClick={() => setBreakingDown(true)}>
-                {isSurfacedParent ? '+ More steps' : 'Too Big'}
+                {isSurfacedParent ? '+ More steps' : 'Too Daunting'}
               </button>
               <button
                 className="ghost"

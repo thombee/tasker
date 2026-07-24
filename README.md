@@ -63,7 +63,7 @@ Notes:
 - **Execution mode** (the default) traverses the tree and always lands on the
   smallest unfinished step. You see one task, four buttons, and the name of
   the goal it belongs to. The hierarchy exists — you just never look at it.
-- **Too Big** is the defining feature. If the current task feels too large to
+- **Too Daunting** is the defining feature. If the current task feels too large to
   start, press it and type smaller steps, one per line. The first one
   immediately becomes your current task. Repeat until the step feels easy
   enough to actually do ("Open VSCode" is a perfectly valid task).
@@ -196,7 +196,7 @@ channel and the widget the ambient one.
   it, **+ More steps** feeds it the next steps you now know about.
 - **No percentages, no overdue badges, no counts.** Progress is narrative:
   what goal you're in, what step you're on, what you just finished.
-- **Manual breakdown only** (for now). Pressing Too Big asks *you* for the
+- **Manual breakdown only** (for now). Pressing Too Daunting asks *you* for the
   smaller steps — fully offline, no API keys. AI-suggested breakdowns are an
   obvious future addition.
 
