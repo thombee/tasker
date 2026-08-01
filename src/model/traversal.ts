@@ -1,7 +1,9 @@
 import { dayKey } from './dates';
 import { AppState, Task } from './types';
 
-// Is a "today's journey" filter in effect for the given day?
+// Is a set of "today" goals marked for the given day? Today no longer hides
+// anything — it just moves the chosen goals to the front and highlights them,
+// so this only drives the marker and the "today's goals done" beat.
 export function todayActive(state: AppState, now = Date.now()): boolean {
   return !!(
     state.today &&
@@ -10,21 +12,25 @@ export function todayActive(state: AppState, now = Date.now()): boolean {
   );
 }
 
-// The goals execution should walk: today's chosen set when active (in
-// rootIds order), otherwise every goal.
-export function activeRoots(state: AppState, now = Date.now()): string[] {
-  if (todayActive(state, now)) {
-    const set = new Set(state.today!.goalIds);
-    return state.rootIds.filter((id) => set.has(id));
-  }
-  return state.rootIds;
+// Is a given goal one of today's chosen ones (still present and for today)?
+export function isTodayGoal(state: AppState, id: string, now = Date.now()): boolean {
+  return todayActive(state, now) && state.today!.goalIds.includes(id);
 }
 
-// The heart of execution mode: walk the tree and land on the smallest
-// unfinished task. If a node has an incomplete child, descend; otherwise
-// the node itself is the current task.
-export function findCurrent(state: AppState, now = Date.now()): string | null {
-  for (const rootId of activeRoots(state, now)) {
+// All of today's goals finished — the gentle "today done" beat. Ignores
+// goals that were removed since they were chosen.
+export function todayComplete(state: AppState, now = Date.now()): boolean {
+  if (!todayActive(state, now)) return false;
+  const live = state.today!.goalIds.filter((id) => state.tasks[id]);
+  if (live.length === 0) return false;
+  return live.every((id) => remainingSteps(state, id) === 0);
+}
+
+// The heart of execution mode: walk every goal in order and land on the
+// smallest unfinished task. Nothing is filtered out — today's goals simply
+// sit at the front of rootIds, so they surface first without hiding the rest.
+export function findCurrent(state: AppState): string | null {
+  for (const rootId of state.rootIds) {
     const found = descend(state, rootId);
     if (found) return found;
   }

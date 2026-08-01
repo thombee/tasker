@@ -95,7 +95,45 @@ button:disabled {
 
 .topnav {
   display: flex;
-  gap: 0.25rem;
+  gap: 0.15rem;
+}
+
+/* Every section is always visible; the current one is clearly marked, so
+   "where am I / how do I get back" is never a question. */
+.navlink {
+  color: var(--faint);
+  font-size: 0.85rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+}
+
+.navlink:hover {
+  color: var(--ink);
+}
+
+.navlink.active {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  font-weight: 600;
+}
+
+/* Soft cross-fade between sections instead of a hard cut. */
+.mode-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  animation: mode-in 0.22s ease;
+}
+
+@keyframes mode-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 /* ---- execution mode ---- */
@@ -594,6 +632,12 @@ textarea {
   background: color-mix(in srgb, var(--accent) 12%, transparent);
 }
 
+.today-chip.on {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+}
+
 /* ---- parked ---- */
 
 .parked-mark {
@@ -754,6 +798,15 @@ textarea {
 .node-actions button:hover {
   color: var(--ink);
   background: var(--line);
+}
+
+.node-actions .node-start {
+  color: var(--accent);
+}
+
+.node-actions .node-start:hover {
+  color: var(--accent-ink);
+  background: var(--accent);
 }
 
 .node-actions .node-delete:hover {

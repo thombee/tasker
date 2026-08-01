@@ -39,51 +39,66 @@ export default function App() {
       : 'tasker';
   }, [state]);
 
+  const nav: { id: Mode; label: string }[] = [
+    { id: 'execute', label: 'Focus' },
+    { id: 'today', label: 'Today' },
+    { id: 'journal', label: 'Journal' },
+    { id: 'plan', label: 'Plan' },
+  ];
+
+  function startGoal(id: string) {
+    dispatch({ type: 'startGoal', id });
+    setMode('execute');
+  }
+
   return (
     <div className="app">
       <header className="topbar">
-        <span className="brand">tasker <span className="version">v{__APP_VERSION__}</span></span>
+        <span className="brand">
+          tasker <span className="version">v{__APP_VERSION__}</span>
+        </span>
         <nav className="topnav">
-          {mode !== 'execute' && (
-            <button className="link" onClick={() => setMode('execute')}>
-              ← Focus
+          {nav.map((item) => (
+            <button
+              key={item.id}
+              className={mode === item.id ? 'navlink active' : 'navlink'}
+              aria-current={mode === item.id ? 'page' : undefined}
+              onClick={() => setMode(item.id)}
+            >
+              {item.label}
             </button>
-          )}
-          {mode !== 'today' && (
-            <button className="link" onClick={() => setMode('today')}>
-              Today
-            </button>
-          )}
-          {mode !== 'journal' && (
-            <button className="link" onClick={() => setMode('journal')}>
-              Journal
-            </button>
-          )}
-          {mode !== 'plan' && (
-            <button className="link" onClick={() => setMode('plan')}>
-              Plan
-            </button>
-          )}
+          ))}
         </nav>
       </header>
-      {mode === 'execute' && (
-        <ExecutionView
-          state={state}
-          dispatch={dispatch}
-          onOpenPlan={() => setMode('plan')}
-          onOpenToday={() => setMode('today')}
-          backupPaused={backup.status === 'paused'}
-          pendingCapture={pendingCapture}
-          onCaptureConsumed={() => setPendingCapture(false)}
-        />
-      )}
-      {mode === 'today' && (
-        <TodayView state={state} dispatch={dispatch} onDone={() => setMode('execute')} />
-      )}
-      {mode === 'plan' && <PlanningView state={state} dispatch={dispatch} backup={backup} />}
-      {mode === 'journal' && (
-        <JournalView state={state} onOpenPlan={() => setMode('plan')} />
-      )}
+
+      {/* Keyed wrapper so each section fades in — softer than a hard cut. */}
+      <div className="mode-content" key={mode}>
+        {mode === 'execute' && (
+          <ExecutionView
+            state={state}
+            dispatch={dispatch}
+            onOpenPlan={() => setMode('plan')}
+            onOpenToday={() => setMode('today')}
+            backupPaused={backup.status === 'paused'}
+            pendingCapture={pendingCapture}
+            onCaptureConsumed={() => setPendingCapture(false)}
+          />
+        )}
+        {mode === 'today' && (
+          <TodayView state={state} dispatch={dispatch} onDone={() => setMode('execute')} />
+        )}
+        {mode === 'plan' && (
+          <PlanningView
+            state={state}
+            dispatch={dispatch}
+            backup={backup}
+            onStartGoal={startGoal}
+          />
+        )}
+        {mode === 'journal' && (
+          <JournalView state={state} onOpenPlan={() => setMode('plan')} />
+        )}
+      </div>
     </div>
   );
 }

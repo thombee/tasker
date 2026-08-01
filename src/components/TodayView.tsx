@@ -9,9 +9,8 @@ interface Props {
   onDone: () => void;
 }
 
-// The morning ritual: pick 1–3 goals for today. Execution then walks only
-// these; everything else rests (nothing is deleted or overdue). Optional —
-// choosing nothing leaves every goal live.
+// The morning ritual: pick 1–3 goals to focus first today. They move to the
+// front so they surface first — nothing is hidden, everything stays reachable.
 export default function TodayView({ state, dispatch, onDone }: Props) {
   const active = todayActive(state);
   const [picked, setPicked] = useState<string[]>(
@@ -39,10 +38,10 @@ export default function TodayView({ state, dispatch, onDone }: Props) {
 
   return (
     <main className="today-view">
-      <h2>Today's journey</h2>
+      <h2>Focus first today</h2>
       <p className="muted">
-        Pick a few things to carry today. The rest will rest — nothing's lost,
-        it just waits its turn.
+        Pick a couple of goals to start with today — they jump to the top of
+        your focus. Nothing else is hidden; you can still reach everything.
       </p>
 
       {goals.length === 0 ? (
@@ -74,10 +73,10 @@ export default function TodayView({ state, dispatch, onDone }: Props) {
         <button className="primary" disabled={picked.length === 0} onClick={commit}>
           {picked.length === 0
             ? 'Pick at least one'
-            : `Start today (${picked.length})`}
+            : `Focus these (${picked.length})`}
         </button>
         <button className="ghost" onClick={everything}>
-          {active ? 'Clear — focus on everything' : 'Skip — keep everything live'}
+          {active ? 'Clear today' : 'Never mind'}
         </button>
       </div>
     </main>

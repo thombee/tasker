@@ -15,9 +15,10 @@ interface Props {
   state: AppState;
   dispatch: Dispatch<Action>;
   backup: FileBackup;
+  onStartGoal: (id: string) => void;
 }
 
-export default function PlanningView({ state, dispatch, backup }: Props) {
+export default function PlanningView({ state, dispatch, backup, onStartGoal }: Props) {
   const [newGoal, setNewGoal] = useState('');
   const [phoneTopic, setPhoneTopic] = useState(getPhoneTopic);
   const [pingStatus, setPingStatus] = useState<string | null>(null);
@@ -86,9 +87,9 @@ export default function PlanningView({ state, dispatch, backup }: Props) {
     <main className="planning">
       <h2>Planning</h2>
       <p className="muted">
-        The map — hidden while you execute. Hover a row for controls: <b>+</b> adds
-        a step inside, <b>⇥</b> nests it under the item above, <b>⇤</b> lifts it out
-        (or turns a Backlog item into its own goal).
+        The map — hidden while you execute. Hover a row for controls: <b>▶</b> starts
+        that goal now, <b>+</b> adds a step inside, <b>⇥</b> nests it under the item
+        above, <b>⇤</b> lifts it out (or turns a Backlog item into its own goal).
       </p>
 
       <div className="tree">
@@ -96,7 +97,14 @@ export default function PlanningView({ state, dispatch, backup }: Props) {
           <p className="muted">No goals yet. Add one below.</p>
         )}
         {state.rootIds.map((id) => (
-          <TreeNode key={id} id={id} depth={0} state={state} dispatch={dispatch} />
+          <TreeNode
+            key={id}
+            id={id}
+            depth={0}
+            state={state}
+            dispatch={dispatch}
+            onStartGoal={onStartGoal}
+          />
         ))}
       </div>
 

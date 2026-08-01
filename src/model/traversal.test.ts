@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { emptyState, reducer, Action } from './store';
-import { activeRoots, findCurrent, goalOf, remainingSteps, todayActive } from './traversal';
+import {
+  findCurrent,
+  goalOf,
+  isTodayGoal,
+  remainingSteps,
+  todayActive,
+  todayComplete,
+} from './traversal';
 import { AppState } from './types';
 
 function apply(state: AppState, ...actions: Action[]): AppState {
@@ -311,50 +318,96 @@ describe("today's journey", () => {
     return state;
   }
 
-  it('execution only walks the chosen goals while active', () => {
+  it('moves chosen goals to the front but hides nothing', () => {
     let state = twoGoals();
+    // SF Review is added second, so BigW is first by default.
+    expect(findCurrent(state)).toBe(idOf(state, 'Open file'));
     state = apply(state, { type: 'setToday', goalIds: [idOf(state, 'SF Review')] });
     expect(todayActive(state)).toBe(true);
+    // SF Review now surfaces first…
     expect(findCurrent(state)).toBe(idOf(state, 'Answer Q1'));
-    // BigW comes first in rootIds but isn't in today, so it's skipped.
-    expect(activeRoots(state)).toEqual([idOf(state, 'SF Review')]);
+    // …but BigW is still there and reachable, not filtered out.
+    expect(state.rootIds).toContain(idOf(state, 'BigW Ticket'));
+    expect(remainingSteps(state, idOf(state, 'BigW Ticket'))).toBe(2);
+    expect(isTodayGoal(state, idOf(state, 'SF Review'))).toBe(true);
+    expect(isTodayGoal(state, idOf(state, 'BigW Ticket'))).toBe(false);
   });
 
-  it('a stale date (yesterday) means no filter', () => {
+  it('non-today goals stay reachable via switch goal', () => {
+    let state = twoGoals();
+    state = apply(state, { type: 'setToday', goalIds: [idOf(state, 'SF Review')] });
+    expect(findCurrent(state)).toBe(idOf(state, 'Answer Q1'));
+    state = apply(state, { type: 'nextGoal' });
+    expect(findCurrent(state)).toBe(idOf(state, 'Open file')); // reached BigW
+  });
+
+  it('a stale date drops the marker but leaves order/reachability intact', () => {
     let state = twoGoals();
     state = apply(state, { type: 'setToday', goalIds: [idOf(state, 'SF Review')] });
     state = { ...state, today: { ...state.today!, date: '2000-01-01' } };
     expect(todayActive(state)).toBe(false);
-    expect(findCurrent(state)).toBe(idOf(state, 'Open file')); // back to all goals
+    // Nothing was hidden, so everything is still reachable.
+    expect(findCurrent(state)).toBe(idOf(state, 'Answer Q1'));
   });
 
-  it('finishing today’s goals returns null even with other work left', () => {
+  it("finishing today's goals flows on to the rest, not a dead end", () => {
     let state = twoGoals();
     state = apply(state, { type: 'setToday', goalIds: [idOf(state, 'SF Review')] });
+    expect(todayComplete(state)).toBe(false);
     state = apply(state, { type: 'done', id: idOf(state, 'Answer Q1') });
     state = apply(state, { type: 'done', id: idOf(state, 'SF Review') });
-    expect(findCurrent(state)).toBeNull();
-    // But BigW still has steps, so the "more left" path is available.
-    expect(remainingSteps(state, idOf(state, 'BigW Ticket'))).toBe(2);
+    expect(todayComplete(state)).toBe(true);
+    // Execution keeps going into BigW rather than walling off.
+    expect(findCurrent(state)).toBe(idOf(state, 'Open file'));
   });
 
-  it('setToday ignores the Backlog and an empty pick clears the filter', () => {
+  it('setToday ignores the Backlog and an empty pick clears the marker', () => {
     let state = apply(twoGoals(), { type: 'capture', title: 'stray' });
     state = apply(state, {
       type: 'setToday',
       goalIds: [state.inboxId!, idOf(state, 'BigW Ticket')],
     });
     expect(state.today!.goalIds).toEqual([idOf(state, 'BigW Ticket')]);
+    // Backlog stays last even after the reorder.
+    expect(state.rootIds[state.rootIds.length - 1]).toBe(state.inboxId);
     state = apply(state, { type: 'setToday', goalIds: [] });
     expect(state.today).toBeNull();
   });
 
-  it('clearToday drops the filter', () => {
+  it('clearToday drops the marker', () => {
     let state = twoGoals();
     state = apply(state, { type: 'setToday', goalIds: [idOf(state, 'SF Review')] });
     state = apply(state, { type: 'clearToday' });
     expect(state.today).toBeNull();
-    expect(findCurrent(state)).toBe(idOf(state, 'Open file'));
+  });
+});
+
+describe('startGoal', () => {
+  it('jumps a goal to the front so it surfaces next', () => {
+    let state = apply(emptyState, { type: 'addGoal', title: 'First' });
+    state = apply(state, {
+      type: 'breakDown',
+      id: idOf(state, 'First'),
+      titles: ['do first thing'],
+    });
+    state = apply(state, { type: 'addGoal', title: 'Second' });
+    state = apply(state, {
+      type: 'breakDown',
+      id: idOf(state, 'Second'),
+      titles: ['do second thing'],
+    });
+    // Second was added last, so First surfaces by default.
+    expect(findCurrent(state)).toBe(idOf(state, 'do first thing'));
+    state = apply(state, { type: 'startGoal', id: idOf(state, 'Second') });
+    expect(findCurrent(state)).toBe(idOf(state, 'do second thing'));
+  });
+
+  it('keeps the Backlog last', () => {
+    let state = apply(buildJourney(), { type: 'capture', title: 'stray' });
+    state = apply(state, { type: 'addGoal', title: 'Other' });
+    state = apply(state, { type: 'startGoal', id: idOf(state, 'Other') });
+    expect(state.rootIds[0]).toBe(idOf(state, 'Other'));
+    expect(state.rootIds[state.rootIds.length - 1]).toBe(state.inboxId);
   });
 });
 

@@ -76,16 +76,19 @@ Notes:
   filesystem-like tree where you can add, rename, reorder, delete, annotate,
   and reopen tasks. Execution never looks like planning.
 
-### Today's journey
+### Focus first today
 
-An optional morning ritual (**Today** in the top nav): pick 1–3 goals to
-carry today, and execution walks only those — everything else rests, not
-deleted, not overdue, just waiting its turn. A finite, completable day
-beats an open-ended one; finishing today's picks shows a real "Today's
-journey, done" finish line instead of a treadmill. It's a lens you *can*
-put on, never a gate — skip it and every goal stays live, exactly as
-before. A quiet, dismissible morning prompt offers it when you have more
-than one goal in play; the filter auto-expires at the end of its day.
+An optional morning ritual (**Today** in the top nav): pick a couple of
+goals to focus first today. They **jump to the top** so they surface
+first — but nothing is hidden and everything stays reachable (switch-goal
+still reaches every goal, and a goal you just made is never invisible).
+The current goal shows a **★ Today** marker when it's one of your picks,
+and a gentle "today's goals are all done" beat fires when you finish them,
+after which execution just flows on to the rest. A quiet, dismissible
+morning prompt offers it when you have more than one goal in play; the
+marker auto-expires at the end of its day. To work on any goal *right
+now*, hit its **▶ start** in Planning — it jumps to the front and drops
+you into Focus.
 
 ### Context helpers
 

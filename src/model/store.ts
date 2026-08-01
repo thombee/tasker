@@ -24,6 +24,7 @@ export type Action =
   | { type: 'resume' }
   | { type: 'setToday'; goalIds: string[] }
   | { type: 'clearToday' }
+  | { type: 'startGoal'; id: string }
   | { type: 'done'; id: string }
   | { type: 'skip'; id: string }
   | { type: 'undo' }
@@ -220,19 +221,34 @@ export function reducer(state: AppState, action: Action): AppState {
     }
 
     case 'setToday': {
-      // Commit to a handful of goals for today. Backlog can't be committed to,
-      // and an empty pick means "no filter" (all goals live).
+      // Pick a handful of goals to carry today: move them to the front so
+      // they surface first, and mark them. Nothing is hidden. Backlog can't
+      // be a today goal; an empty pick clears the marker (order stays as-is).
       const goalIds = action.goalIds.filter(
         (id) => state.rootIds.includes(id) && id !== state.inboxId,
       );
-      return {
+      if (goalIds.length === 0) return state.today ? { ...state, today: null } : state;
+      const chosen = new Set(goalIds);
+      const rest = state.rootIds.filter((id) => !chosen.has(id));
+      const rootIds = [...goalIds, ...rest];
+      return keepBacklogLast({
         ...state,
-        today: goalIds.length ? { date: dayKey(Date.now()), goalIds } : null,
-      };
+        rootIds,
+        today: { date: dayKey(Date.now()), goalIds },
+      });
     }
 
     case 'clearToday': {
       return state.today ? { ...state, today: null } : state;
+    }
+
+    case 'startGoal': {
+      // Jump a goal to the front so execution surfaces it next — "work on
+      // this now", without hiding or reordering anything else meaningfully.
+      const id = action.id;
+      if (!state.rootIds.includes(id) || id === state.inboxId) return state;
+      const rootIds = [id, ...state.rootIds.filter((r) => r !== id)];
+      return keepBacklogLast({ ...state, rootIds });
     }
 
     case 'done': {

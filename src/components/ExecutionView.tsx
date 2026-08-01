@@ -3,11 +3,12 @@ import { completedToday, lastActiveDay } from '../model/journal';
 import { getPhoneTopic, sendParkPingSmart, sendResumePing } from '../model/phonePing';
 import { Action } from '../model/store';
 import {
-  activeRoots,
   findCurrent,
   goalOf,
+  isTodayGoal,
   remainingSteps,
   todayActive,
+  todayComplete,
 } from '../model/traversal';
 import { AppState } from '../model/types';
 import { quoteOfTheDay } from '../quotes';
@@ -89,6 +90,17 @@ export default function ExecutionView({
   const canUndo = state.history.length > 0;
   const quote = quoteOfTheDay();
 
+  // Gentle "today's goals are all done" beat — fires once as the last one
+  // flips complete, then execution just flows on to the rest.
+  const todayDoneNow = todayActive(state) && todayComplete(state);
+  const prevTodayDone = useRef(false);
+  useEffect(() => {
+    if (todayDoneNow && !prevTodayDone.current) {
+      setToast("✓ Today's goals are all done — nice");
+    }
+    prevTodayDone.current = todayDoneNow;
+  }, [todayDoneNow]);
+
   // Fresh sitting: nothing finished yet today, so show what the last
   // working day produced — momentum you can reread instead of reconstruct.
   const recap =
@@ -139,39 +151,16 @@ export default function ExecutionView({
   }
 
   if (!current) {
-    const onToday = todayActive(state);
-    // A goal exists with work left, just not in today's journey.
-    const moreLeft = state.rootIds.some(
-      (id) => id !== state.inboxId && remainingSteps(state, id) > 0,
-    );
     return (
       <main className="execution">
         <div className="stage">
           <div className="all-done">
             <p className="all-done-mark">✓</p>
-            <h1>{onToday ? "Today's journey, done." : "That's everything."}</h1>
-            <p className="muted">
-              {onToday
-                ? 'The rest can wait for another day. Well done.'
-                : 'Nothing left to do. Enjoy the quiet.'}
-            </p>
-            {onToday && moreLeft ? (
-              <div className="row">
-                <button className="ghost" onClick={onOpenToday}>
-                  Add to today
-                </button>
-                <button
-                  className="ghost"
-                  onClick={() => dispatch({ type: 'clearToday' })}
-                >
-                  Keep going anyway
-                </button>
-              </div>
-            ) : (
-              <button className="ghost" onClick={onOpenPlan}>
-                Plan what's next
-              </button>
-            )}
+            <h1>That's everything.</h1>
+            <p className="muted">Nothing left to do. Enjoy the quiet.</p>
+            <button className="ghost" onClick={onOpenPlan}>
+              Plan what's next
+            </button>
           </div>
         </div>
       </main>
@@ -188,12 +177,12 @@ export default function ExecutionView({
 
   const parent = current.parentId ? state.tasks[current.parentId] : null;
 
-  // "Switch goal" only makes sense when another *reachable* goal still has
-  // work left — i.e. within today's journey when one is active, otherwise any
-  // goal. (Counting all goals here made the link show but do nothing when a
-  // Today filter limited execution to a single goal.)
+  // "Switch goal" shows whenever another goal still has work — every goal is
+  // reachable now, so it never appears and then does nothing.
   const canSwitchGoal =
-    activeRoots(state).filter((id) => remainingSteps(state, id) > 0).length > 1;
+    state.rootIds.filter((id) => remainingSteps(state, id) > 0).length > 1;
+
+  const onTodayGoal = goal !== null && isTodayGoal(state, goal.id);
 
   // Goal-gradient nudge: say so when this is the last remaining step of a
   // stretch or of the whole goal — narrative, never a number.
@@ -311,7 +300,7 @@ export default function ExecutionView({
       <div className="stage">
         {showMorningPrompt && (
           <div className="morning-prompt">
-            <span>Set today's journey?</span>
+            <span>Pick a couple of goals to focus first today?</span>
             <button className="link" onClick={onOpenToday}>
               Choose
             </button>
@@ -531,11 +520,11 @@ export default function ExecutionView({
         <p className="footer-context">
           {todayActive(state) && (
             <button
-              className="today-chip"
-              title="Today's journey — tap to change"
+              className={onTodayGoal ? 'today-chip on' : 'today-chip'}
+              title="Today's focus goals — tap to change"
               onClick={onOpenToday}
             >
-              Today
+              {onTodayGoal ? '★ Today' : 'Today'}
             </button>
           )}
           {goal && goal.id !== current.id && (

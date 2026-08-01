@@ -7,9 +7,10 @@ interface Props {
   dispatch: Dispatch<Action>;
   id: string;
   depth: number;
+  onStartGoal?: (id: string) => void;
 }
 
-export default function TreeNode({ state, dispatch, id, depth }: Props) {
+export default function TreeNode({ state, dispatch, id, depth, onStartGoal }: Props) {
   const task = state.tasks[id];
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(task?.title ?? '');
@@ -88,6 +89,15 @@ export default function TreeNode({ state, dispatch, id, depth }: Props) {
         )}
 
         <span className="node-actions">
+          {depth === 0 && !isBacklog && onStartGoal && task.status === 'todo' && (
+            <button
+              className="node-start"
+              title="Start this goal now — jump straight to it"
+              onClick={() => onStartGoal(id)}
+            >
+              ▶
+            </button>
+          )}
           <button title="Add step inside" onClick={() => setAddingChild(true)}>
             +
           </button>
