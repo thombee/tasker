@@ -8,9 +8,19 @@ interface Props {
   id: string;
   depth: number;
   onStartGoal?: (id: string) => void;
+  otherSpaceLabel?: string;
+  onMoveGoalToSpace?: (id: string) => void;
 }
 
-export default function TreeNode({ state, dispatch, id, depth, onStartGoal }: Props) {
+export default function TreeNode({
+  state,
+  dispatch,
+  id,
+  depth,
+  onStartGoal,
+  otherSpaceLabel,
+  onMoveGoalToSpace,
+}: Props) {
   const task = state.tasks[id];
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(task?.title ?? '');
@@ -126,6 +136,15 @@ export default function TreeNode({ state, dispatch, id, depth, onStartGoal }: Pr
           <button title="Notes & estimate" onClick={() => setShowDetails(!showDetails)}>
             ⋯
           </button>
+          {depth === 0 && !isBacklog && onMoveGoalToSpace && otherSpaceLabel && (
+            <button
+              className="node-move-space"
+              title={`Move this goal to ${otherSpaceLabel}`}
+              onClick={() => onMoveGoalToSpace(id)}
+            >
+              →{otherSpaceLabel[0]}
+            </button>
+          )}
           <button
             className="node-delete"
             title="Delete (and everything inside)"

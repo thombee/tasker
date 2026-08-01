@@ -76,6 +76,17 @@ Notes:
   filesystem-like tree where you can add, rename, reorder, delete, annotate,
   and reopen tasks. Execution never looks like planning.
 
+### Work and Life
+
+Two fully separate spaces, toggled top-left. **Work** and **Life** each
+have their own goals, backlog, journey, journal, and Today picks — nothing
+bleeds across, so a wall of home errands never lands on top of your work
+queue (and vice versa). Switching is instant; each space remembers where
+you were. A goal that ends up in the wrong space moves over cleanly:
+**Plan → hover a goal → →L / →W** carries the whole subtree across. The
+active space is a per-device view preference — it isn't synced, so one
+device can sit in Work while another is in Life.
+
 ### Focus first today
 
 An optional morning ritual (**Today** in the top nav): pick a couple of
@@ -136,6 +147,33 @@ into **Plan → AI summary**, and hit Test. Nothing is ever sent unless you
 click summarize; the key is stored locally and (in the desktop app) the
 call routes through the main process, so it works behind corporate proxies.
 Your task titles pass through Groq's servers, so keep them non-sensitive.
+
+### Sync across devices (optional)
+
+Keeps **both Work and Life** in step across your machines through a single
+**private GitHub Gist** — no server to run, no account beyond the GitHub
+one you already have.
+
+1. Make a token with **only the `gist` scope** at
+   [github.com/settings/tokens](https://github.com/settings/tokens/new?scopes=gist&description=tasker%20sync).
+2. On your main device, paste it into **Plan → Sync** and hit **Create
+   private gist**. It seeds the gist with what's already on that device and
+   fills in a gist id.
+3. On each other device, paste the **same token** and that **gist id**, then
+   **Connect**.
+
+After that it's automatic: it reads on open, saves a debounced copy after
+edits, and polls (~9 s) for changes from the other device. A small dot next
+to the Work/Life toggle shows the state — **⟳ synced** (with the time),
+**…** while it talks to GitHub, **⚠** if something's wrong (click it to jump
+to the settings). Conflicts resolve **last-writer-wins**: if you edit the
+same space on two devices while one is offline, the most recently saved one
+wins, so avoid parallel offline edits to the same space. Your task titles
+are stored in the gist (private, but readable by anyone with the token), so
+keep genuinely sensitive detail out of titles. The token and gist id live
+on each device only and are never included in Export/Import backups. In the
+desktop app the sync calls route through Electron's main process, so they
+work behind corporate proxies the same way pings and the AI summary do.
 
 ### Journal
 

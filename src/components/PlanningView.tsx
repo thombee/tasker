@@ -7,8 +7,10 @@ import {
   savePhoneTopic,
   sendParkPingSmart,
 } from '../model/phonePing';
+import { SyncState } from '../hooks/useGistSync';
 import { Action } from '../model/store';
 import { AppState } from '../model/types';
+import SyncSettings from './SyncSettings';
 import TreeNode from './TreeNode';
 
 interface Props {
@@ -16,9 +18,24 @@ interface Props {
   dispatch: Dispatch<Action>;
   backup: FileBackup;
   onStartGoal: (id: string) => void;
+  otherSpaceLabel: string;
+  onMoveGoalToSpace: (id: string) => void;
+  syncState: SyncState;
+  spacesData: { work: AppState; life: AppState };
+  onSyncConfigChanged: () => void;
 }
 
-export default function PlanningView({ state, dispatch, backup, onStartGoal }: Props) {
+export default function PlanningView({
+  state,
+  dispatch,
+  backup,
+  onStartGoal,
+  otherSpaceLabel,
+  onMoveGoalToSpace,
+  syncState,
+  spacesData,
+  onSyncConfigChanged,
+}: Props) {
   const [newGoal, setNewGoal] = useState('');
   const [phoneTopic, setPhoneTopic] = useState(getPhoneTopic);
   const [pingStatus, setPingStatus] = useState<string | null>(null);
@@ -104,6 +121,8 @@ export default function PlanningView({ state, dispatch, backup, onStartGoal }: P
             state={state}
             dispatch={dispatch}
             onStartGoal={onStartGoal}
+            otherSpaceLabel={otherSpaceLabel}
+            onMoveGoalToSpace={onMoveGoalToSpace}
           />
         ))}
       </div>
@@ -169,6 +188,12 @@ export default function PlanningView({ state, dispatch, backup, onStartGoal }: P
           />
         </div>
       </div>
+
+      <SyncSettings
+        syncState={syncState}
+        spacesData={spacesData}
+        onChanged={onSyncConfigChanged}
+      />
 
       <div className="backup-section">
         <p className="muted small">

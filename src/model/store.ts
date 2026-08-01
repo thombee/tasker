@@ -505,3 +505,134 @@ export function saveState(state: AppState): void {
     // Storage full or unavailable — the app still works for this session.
   }
 }
+
+// ---- Work | Life spaces ----------------------------------------------------
+// Two fully independent trees so work and life never bleed into each other.
+// The reducer stays per-AppState; a thin top reducer routes actions to the
+// active space, so nothing below had to change.
+
+const SPACES_KEY = 'tasker.spaces.v1';
+
+export type SpaceId = 'work' | 'life';
+
+export interface Spaces {
+  work: AppState;
+  life: AppState;
+  active: SpaceId;
+}
+
+export type TopAction =
+  | Action
+  | { type: 'switchSpace'; space: SpaceId }
+  | { type: 'moveGoalToSpace'; id: string; to: SpaceId }
+  | { type: 'hydrateSpaces'; spaces: Spaces };
+
+export const emptySpaces: Spaces = {
+  work: emptyState,
+  life: emptyState,
+  active: 'work',
+};
+
+// Move a whole goal subtree from the active space into the other one.
+function moveGoalBetween(spaces: Spaces, id: string, to: SpaceId): Spaces {
+  const from = spaces.active;
+  if (from === to) return spaces;
+  const src = spaces[from];
+  if (!src.rootIds.includes(id) || id === src.inboxId) return spaces;
+
+  const ids = new Set<string>();
+  const stack = [id];
+  while (stack.length > 0) {
+    const cur = stack.pop()!;
+    const t = src.tasks[cur];
+    if (!t) continue;
+    ids.add(cur);
+    stack.push(...t.childIds);
+  }
+
+  const moved: Record<string, Task> = {};
+  const srcTasks = { ...src.tasks };
+  for (const tid of ids) {
+    moved[tid] = src.tasks[tid];
+    delete srcTasks[tid];
+  }
+
+  const srcToday = src.today
+    ? { ...src.today, goalIds: src.today.goalIds.filter((g) => !ids.has(g)) }
+    : null;
+  const cleanedSrc: AppState = {
+    ...src,
+    tasks: srcTasks,
+    rootIds: src.rootIds.filter((r) => r !== id),
+    today: srcToday && srcToday.goalIds.length ? srcToday : null,
+    history: src.history
+      .map((e) => ({ ...e, changes: e.changes.filter((c) => !ids.has(c.id)) }))
+      .filter((e) => e.changes.length > 0),
+  };
+
+  const dest = spaces[to];
+  const destState = keepBacklogLast({
+    ...dest,
+    tasks: { ...dest.tasks, ...moved },
+    rootIds: [...dest.rootIds, id],
+  });
+
+  return { ...spaces, [from]: cleanedSrc, [to]: destState };
+}
+
+export function topReducer(spaces: Spaces, action: TopAction): Spaces {
+  switch (action.type) {
+    case 'switchSpace':
+      return spaces.active === action.space
+        ? spaces
+        : { ...spaces, active: action.space };
+    case 'hydrateSpaces':
+      return sanitizeSpaces(action.spaces);
+    case 'moveGoalToSpace':
+      return moveGoalBetween(spaces, action.id, action.to);
+    default:
+      return {
+        ...spaces,
+        [spaces.active]: reducer(spaces[spaces.active], action),
+      };
+  }
+}
+
+function coerceState(raw: unknown): AppState {
+  try {
+    return sanitize(raw);
+  } catch {
+    return emptyState;
+  }
+}
+
+export function sanitizeSpaces(raw: unknown): Spaces {
+  const s = (raw ?? {}) as Partial<Spaces>;
+  return {
+    work: coerceState(s.work),
+    life: coerceState(s.life),
+    active: s.active === 'life' ? 'life' : 'work',
+  };
+}
+
+export function loadSpaces(): Spaces {
+  try {
+    const raw = localStorage.getItem(SPACES_KEY);
+    if (raw) return sanitizeSpaces(JSON.parse(raw));
+  } catch {
+    // fall through to migration
+  }
+  // First run on the spaces model: fold any existing single-tree data into
+  // Work (that's where the heaviest use has been), leaving Life empty.
+  const old = loadState();
+  if (old) return { work: old, life: emptyState, active: 'work' };
+  return emptySpaces;
+}
+
+export function saveSpaces(spaces: Spaces): void {
+  try {
+    localStorage.setItem(SPACES_KEY, JSON.stringify(spaces));
+  } catch {
+    // storage unavailable
+  }
+}

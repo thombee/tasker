@@ -7,7 +7,11 @@ interface Window {
     ): Promise<{ status: number; body: string }>;
     apiCall(
       url: string,
-      init: { headers: Record<string, string>; body: string },
+      init: {
+        method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
+        headers: Record<string, string>;
+        body: string;
+      },
     ): Promise<{ status: number; body: string }>;
     openAuth(url: string): Promise<boolean>;
     onQuickCapture(cb: () => void): () => void;

@@ -36,20 +36,24 @@ ipcMain.handle('tasker:ping', async (_event, url, init) => {
   }
 });
 
-// General POST for API calls (e.g. the Groq summary) — full response body,
-// session cookies, no CORS. Restricted to https.
+// General API calls (Groq summary, Gist sync) — full response body, session
+// cookies, no CORS. Honors init.method (GET/POST/PATCH/…), defaulting to POST
+// for older callers. Restricted to https.
 ipcMain.handle('tasker:api', async (_event, url, init) => {
   try {
     if (typeof url !== 'string' || !/^https:\/\//i.test(url)) {
       return { status: 0, body: 'invalid url' };
     }
+    const method =
+      init && typeof init.method === 'string' ? init.method.toUpperCase() : 'POST';
+    const hasBody = method !== 'GET' && method !== 'HEAD';
     const response = await session.defaultSession.fetch(url, {
-      method: 'POST',
+      method,
       credentials: 'include',
       headers: init && typeof init.headers === 'object' ? init.headers : {},
-      body: init && typeof init.body === 'string' ? init.body : '',
+      body: hasBody && init && typeof init.body === 'string' ? init.body : undefined,
     });
-    const body = (await response.text()).slice(0, 100000);
+    const body = (await response.text()).slice(0, 2000000);
     return { status: response.status, body };
   } catch (err) {
     return { status: 0, body: String(err).slice(0, 300) };
