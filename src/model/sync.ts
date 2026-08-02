@@ -12,13 +12,32 @@ import { AppState } from './types';
 
 const CONFIG_KEY = 'tasker.sync.v1';
 const BASE_KEY = 'tasker.sync.base.v1';
+const CAPTURE_KEY = 'tasker.capture.enabled.v1';
 const GIST_FILE = 'tasker-spaces.json';
+// Phone brain-dumps arrive as their own little files (one per capture) named
+// with this prefix. Separate files mean a phone write can never clobber the
+// task data or another capture — a gist PATCH only touches the files it names.
+const CAPTURE_PREFIX = 'cap_';
 const API = 'https://api.github.com';
 const PAYLOAD_VERSION = 1;
 
 export interface SyncConfig {
   token: string;
   gistId: string;
+}
+
+export interface Capture {
+  name: string;
+  text: string;
+  space: 'work' | 'life';
+}
+
+// Filenames may carry an optional space hint: `cap_work_…` / `cap_life_…`.
+// Anything else defaults to Life, which is where brain-dumps go.
+function captureSpace(name: string): 'work' | 'life' {
+  const rest = name.slice(CAPTURE_PREFIX.length).toLowerCase();
+  if (rest.startsWith('work_') || rest.startsWith('w_')) return 'work';
+  return 'life';
 }
 
 export interface RemotePayload {
@@ -88,6 +107,24 @@ export function clearSync(): void {
   }
 }
 
+// Whether THIS device drains phone captures. Defaults on; turn it off on
+// extra synced machines so a capture isn't added twice.
+export function captureEnabled(): boolean {
+  try {
+    return localStorage.getItem(CAPTURE_KEY) !== '0';
+  } catch {
+    return true;
+  }
+}
+
+export function setCaptureEnabled(on: boolean): void {
+  try {
+    localStorage.setItem(CAPTURE_KEY, on ? '1' : '0');
+  } catch {
+    // storage unavailable
+  }
+}
+
 // Stable serialization of just the task data (not `active`, a device-local
 // view preference) so two devices can compare content regardless of which
 // space each is looking at.
@@ -148,7 +185,17 @@ async function rawGet(url: string, token: string): Promise<string> {
 export interface ReadResult {
   ok: boolean;
   payload?: RemotePayload | null; // null = gist exists but has no tasker file yet
+  captures?: Capture[]; // pending phone brain-dumps, if any
   error?: string;
+}
+
+async function fileContent(
+  file: { content?: string; truncated?: boolean; raw_url?: string },
+  token: string,
+): Promise<string> {
+  // Files over ~1MB come back truncated with the full copy at raw_url.
+  if (file.truncated && file.raw_url) return rawGet(file.raw_url, token);
+  return file.content ?? '';
 }
 
 export async function readRemote(cfg: SyncConfig): Promise<ReadResult> {
@@ -156,19 +203,65 @@ export async function readRemote(cfg: SyncConfig): Promise<ReadResult> {
     const r = await api('GET', `/gists/${cfg.gistId}`, cfg.token);
     if (r.status < 200 || r.status >= 300) return { ok: false, error: errorFrom(r) };
     const gist = JSON.parse(r.body);
-    const file = gist.files?.[GIST_FILE];
-    if (!file) return { ok: true, payload: null };
-    // Files over ~1MB come back truncated with the full copy at raw_url.
-    let content: string = file.content ?? '';
-    if (file.truncated && file.raw_url) {
-      content = await rawGet(file.raw_url, cfg.token);
+    const files = (gist.files ?? {}) as Record<
+      string,
+      { content?: string; truncated?: boolean; raw_url?: string }
+    >;
+
+    // Collect any pending phone captures (each its own cap_* file).
+    const captures: Capture[] = [];
+    for (const name of Object.keys(files)) {
+      if (!name.startsWith(CAPTURE_PREFIX)) continue;
+      const text = (await fileContent(files[name], cfg.token)).trim();
+      if (text) captures.push({ name, text, space: captureSpace(name) });
     }
-    if (!content.trim()) return { ok: true, payload: null };
+
+    const file = files[GIST_FILE];
+    if (!file) return { ok: true, payload: null, captures };
+    const content = (await fileContent(file, cfg.token)).trim();
+    if (!content) return { ok: true, payload: null, captures };
     const payload = JSON.parse(content) as RemotePayload;
     if (!payload || typeof payload.updatedAt !== 'number' || !payload.spaces) {
-      return { ok: true, payload: null };
+      return { ok: true, payload: null, captures };
     }
-    return { ok: true, payload };
+    return { ok: true, payload, captures };
+  } catch (err) {
+    return { ok: false, error: String(err).slice(0, 160) };
+  }
+}
+
+// Delete drained capture files. Naming only these files leaves the task data
+// and any capture that arrived meanwhile untouched.
+export async function deleteCaptures(
+  cfg: SyncConfig,
+  names: string[],
+): Promise<{ ok: boolean; error?: string }> {
+  if (names.length === 0) return { ok: true };
+  try {
+    const files: Record<string, null> = {};
+    for (const n of names) files[n] = null;
+    const r = await api('PATCH', `/gists/${cfg.gistId}`, cfg.token, JSON.stringify({ files }));
+    if (r.status < 200 || r.status >= 300) return { ok: false, error: errorFrom(r) };
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: String(err).slice(0, 160) };
+  }
+}
+
+// Add a capture file (used by the in-app "send test capture", and the exact
+// shape a phone Shortcut writes). Space defaults to Life.
+export async function postCapture(
+  cfg: SyncConfig,
+  text: string,
+  space: 'work' | 'life' = 'life',
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const rand = Math.random().toString(36).slice(2, 7);
+    const name = `${CAPTURE_PREFIX}${space}_${Date.now()}_${rand}.txt`;
+    const body = JSON.stringify({ files: { [name]: { content: text } } });
+    const r = await api('PATCH', `/gists/${cfg.gistId}`, cfg.token, body);
+    if (r.status < 200 || r.status >= 300) return { ok: false, error: errorFrom(r) };
+    return { ok: true };
   } catch (err) {
     return { ok: false, error: String(err).slice(0, 160) };
   }

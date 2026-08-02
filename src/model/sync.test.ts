@@ -2,9 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { emptyState } from './store';
 import {
   createGist,
+  deleteCaptures,
   getSyncBase,
   getSyncConfig,
   isEmptyData,
+  postCapture,
   readRemote,
   saveSyncBase,
   saveSyncConfig,
@@ -63,7 +65,15 @@ function installFakeGistServer() {
         return resp(200, JSON.stringify({ id, files: gists[id] }));
       }
       if (method === 'PATCH') {
-        Object.assign(gists[id], JSON.parse(init!.body as string).files);
+        const files = JSON.parse(init!.body as string).files as Record<
+          string,
+          { content: string } | null
+        >;
+        for (const [name, val] of Object.entries(files)) {
+          // GitHub deletes a file when its value is null.
+          if (val === null) delete gists[id][name];
+          else gists[id][name] = val;
+        }
         return resp(200, JSON.stringify({ id, files: gists[id] }));
       }
     }
@@ -142,6 +152,32 @@ describe('gist API round-trip', () => {
     const res = await readRemote({ token: TOKEN, gistId: 'nope' });
     expect(res.ok).toBe(false);
     expect(res.error).toContain('404');
+  });
+
+  it('posts, reads, and deletes phone captures without touching task data', async () => {
+    const seed = { work: goal('w', 'Work goal'), life: emptyState };
+    const gistId = (await createGist(TOKEN, seed)).gistId!;
+    const cfg = { token: TOKEN, gistId };
+
+    // Phone drops a Life capture and a Work capture.
+    await postCapture(cfg, 'buy oat milk'); // defaults to life
+    await postCapture(cfg, 'file expenses', 'work');
+
+    const read = await readRemote(cfg);
+    expect(read.captures).toHaveLength(2);
+    const life = read.captures!.find((c) => c.space === 'life');
+    const work = read.captures!.find((c) => c.space === 'work');
+    expect(life?.text).toBe('buy oat milk');
+    expect(work?.text).toBe('file expenses');
+    // The task data file is still intact and readable alongside captures.
+    expect(read.payload?.spaces.work.rootIds).toEqual(['w']);
+
+    // Draining deletes only the capture files.
+    const del = await deleteCaptures(cfg, read.captures!.map((c) => c.name));
+    expect(del.ok).toBe(true);
+    const after = await readRemote(cfg);
+    expect(after.captures ?? []).toHaveLength(0);
+    expect(after.payload?.spaces.work.rootIds).toEqual(['w']);
   });
 });
 

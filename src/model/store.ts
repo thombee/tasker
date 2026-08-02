@@ -525,6 +525,7 @@ export type TopAction =
   | Action
   | { type: 'switchSpace'; space: SpaceId }
   | { type: 'moveGoalToSpace'; id: string; to: SpaceId }
+  | { type: 'captureTo'; space: SpaceId; title: string }
   | { type: 'hydrateSpaces'; spaces: Spaces };
 
 export const emptySpaces: Spaces = {
@@ -590,6 +591,16 @@ export function topReducer(spaces: Spaces, action: TopAction): Spaces {
       return sanitizeSpaces(action.spaces);
     case 'moveGoalToSpace':
       return moveGoalBetween(spaces, action.id, action.to);
+    case 'captureTo':
+      // Capture into a specific space regardless of which one is active —
+      // used to land phone brain-dumps in Life without switching the view.
+      return {
+        ...spaces,
+        [action.space]: reducer(spaces[action.space], {
+          type: 'capture',
+          title: action.title,
+        }),
+      };
     default:
       return {
         ...spaces,

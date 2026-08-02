@@ -1,6 +1,9 @@
 import { Dispatch, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Spaces, TopAction } from '../model/store';
 import {
+  Capture,
+  captureEnabled,
+  deleteCaptures,
   getSyncBase,
   getSyncConfig,
   readRemote,
@@ -46,8 +49,35 @@ export function useGistSync(
   const configRef = useRef<SyncConfig>(getSyncConfig());
   const writeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inFlight = useRef(false);
+  // Capture files already handed to the reducer this session, so a fast poll
+  // (or a failed delete) never adds the same thought twice.
+  const drainedRef = useRef<Set<string>>(new Set());
+  // Drained files whose delete hasn't succeeded yet — retried each tick so the
+  // gist doesn't accumulate already-landed captures.
+  const pendingDeleteRef = useRef<Set<string>>(new Set());
 
   const localContent = useMemo(() => serializeSpaces(spaces), [spaces]);
+
+  // Land any pending phone brain-dumps into their space's Backlog, then delete
+  // the drained files from the gist. Only the designated device drains.
+  const drainCaptures = useCallback(
+    async (cfg: SyncConfig, captures: Capture[] | undefined) => {
+      if (!captureEnabled()) return;
+      const fresh = (captures ?? []).filter((c) => !drainedRef.current.has(c.name));
+      for (const c of fresh) {
+        drainedRef.current.add(c.name);
+        pendingDeleteRef.current.add(c.name);
+        dispatch({ type: 'captureTo', space: c.space, title: c.text });
+      }
+      // Retry any outstanding deletes (including this batch). Tasks are never
+      // re-created — only the file cleanup is retried.
+      const toDelete = [...pendingDeleteRef.current];
+      if (toDelete.length === 0) return;
+      const res = await deleteCaptures(cfg, toDelete);
+      if (res.ok) toDelete.forEach((n) => pendingDeleteRef.current.delete(n));
+    },
+    [dispatch],
+  );
 
   const applyRemote = useCallback(
     (payload: { updatedAt: number; spaces: { work: Spaces['work']; life: Spaces['life'] } }) => {
@@ -105,28 +135,29 @@ export function useGistSync(
         return;
       }
       const base = getSyncBase();
-      const local = spacesRef.current;
-      const localStr = serializeSpaces(local);
+      const localStr = serializeSpaces(spacesRef.current);
       if (!res.payload) {
         // Gist has no data yet — seed it from this device.
         syncedContentRef.current = ''; // force pushNow to send
         await pushNow();
-        return;
-      }
-      const remoteStr = serializeSpaces(res.payload.spaces);
-      if (remoteStr === localStr) {
-        // Already identical — just record where we are.
-        syncedContentRef.current = localStr;
-        saveSyncBase(res.payload.updatedAt);
-        setSync({ phase: 'synced', lastSyncedAt: res.payload.updatedAt, error: null });
-      } else if (res.payload.updatedAt > base) {
-        // Remote moved on since we last synced → take it.
-        applyRemote(res.payload);
       } else {
-        // We have local edits the gist hasn't seen → push them up.
-        syncedContentRef.current = remoteStr; // so pushNow sees a diff
-        await pushNow();
+        const remoteStr = serializeSpaces(res.payload.spaces);
+        if (remoteStr === localStr) {
+          // Already identical — just record where we are.
+          syncedContentRef.current = localStr;
+          saveSyncBase(res.payload.updatedAt);
+          setSync({ phase: 'synced', lastSyncedAt: res.payload.updatedAt, error: null });
+        } else if (res.payload.updatedAt > base) {
+          // Remote moved on since we last synced → take it.
+          applyRemote(res.payload);
+        } else {
+          // We have local edits the gist hasn't seen → push them up.
+          syncedContentRef.current = remoteStr; // so pushNow sees a diff
+          await pushNow();
+        }
       }
+      if (cancelled) return;
+      await drainCaptures(cfg, res.captures);
     })();
     return () => {
       cancelled = true;
@@ -155,18 +186,21 @@ export function useGistSync(
     const tick = async () => {
       if (cancelled || inFlight.current) return;
       const res = await readRemote(cfg);
-      if (cancelled || !res.ok || !res.payload) return;
-      const remoteStr = serializeSpaces(res.payload.spaces);
-      if (res.payload.updatedAt > getSyncBase() && remoteStr !== syncedContentRef.current) {
-        applyRemote(res.payload);
+      if (cancelled || !res.ok) return;
+      if (res.payload) {
+        const remoteStr = serializeSpaces(res.payload.spaces);
+        if (res.payload.updatedAt > getSyncBase() && remoteStr !== syncedContentRef.current) {
+          applyRemote(res.payload);
+        }
       }
+      await drainCaptures(cfg, res.captures);
     };
     const timer = setInterval(tick, POLL_MS);
     return () => {
       cancelled = true;
       clearInterval(timer);
     };
-  }, [applyRemote, configVersion]);
+  }, [applyRemote, drainCaptures, configVersion]);
 
   return sync;
 }

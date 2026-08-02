@@ -80,6 +80,18 @@ describe('spaces', () => {
     expect(spaces.life.rootIds).toContain(a);
   });
 
+  it('captureTo lands a task in the named space without switching the active one', () => {
+    let spaces = apply(emptySpaces, { type: 'addGoal', title: 'Work goal' });
+    // Active is Work; a phone capture should still land in Life.
+    spaces = apply(spaces, { type: 'captureTo', space: 'life', title: 'buy milk' });
+    expect(spaces.active).toBe('work');
+    const lifeTitles = Object.values(spaces.life.tasks).map((t) => t.title);
+    expect(lifeTitles).toContain('buy milk');
+    // It went to the Life Backlog, and Work is untouched.
+    expect(spaces.life.inboxId).not.toBeNull();
+    expect(Object.values(spaces.work.tasks).map((t) => t.title)).toEqual(['Work goal']);
+  });
+
   it('sanitizeSpaces coerces junk to empty and defaults active to work', () => {
     const s = sanitizeSpaces({ work: 'nonsense', life: null, active: 'bogus' });
     expect(s.work.rootIds).toEqual([]);

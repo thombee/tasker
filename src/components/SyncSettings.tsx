@@ -2,10 +2,13 @@ import { useState } from 'react';
 import { SyncState } from '../hooks/useGistSync';
 import { AppState } from '../model/types';
 import {
+  captureEnabled,
   clearSync,
   createGist,
   getSyncConfig,
+  postCapture,
   saveSyncConfig,
+  setCaptureEnabled,
 } from '../model/sync';
 
 interface Props {
@@ -25,8 +28,21 @@ export default function SyncSettings({ syncState, spacesData, onChanged }: Props
   const [gistId, setGistId] = useState(initial.gistId);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  const [capOn, setCapOn] = useState(captureEnabled);
+  const [capNote, setCapNote] = useState<string | null>(null);
+  const [showSetup, setShowSetup] = useState(false);
 
   const configured = !!(token.trim() && gistId.trim());
+
+  async function sendTestCapture() {
+    setCapNote('sending…');
+    const res = await postCapture({ token: token.trim(), gistId: gistId.trim() }, 'Test capture from phone ✓');
+    setCapNote(
+      res.ok
+        ? "sent — it lands in Life's Backlog within ~10s (if this device is receiving)."
+        : `couldn't send — ${res.error}`,
+    );
+  }
 
   function connect() {
     saveSyncConfig({ token, gistId });
@@ -137,11 +153,70 @@ export default function SyncSettings({ syncState, spacesData, onChanged }: Props
         </p>
       )}
       {configured && syncState.phase !== 'off' && (
-        <p className="muted small">
-          <button className="link inline" onClick={disconnect}>
-            Turn off sync on this device
-          </button>
-        </p>
+        <div className="capture-box">
+          <p className="muted small">
+            <strong>Phone brain-dump → Life.</strong> From your phone, one tap
+            drops a thought straight into <strong>Life's Backlog</strong> here —
+            it rides the same private gist, so nothing new to set up but a
+            shortcut on your phone.
+          </p>
+          <label className="capture-toggle small">
+            <input
+              type="checkbox"
+              checked={capOn}
+              onChange={(e) => {
+                setCapOn(e.target.checked);
+                setCaptureEnabled(e.target.checked);
+              }}
+            />{' '}
+            Receive phone captures on this device
+            <span className="muted"> — if you sync several computers, keep this on for just one.</span>
+          </label>
+          <div className="row backup">
+            <button className="ghost" onClick={sendTestCapture}>
+              Send test capture
+            </button>
+            <button className="link inline" onClick={() => setShowSetup((s) => !s)}>
+              {showSetup ? 'hide phone setup' : 'how to set up my phone'}
+            </button>
+          </div>
+          {capNote && <p className="muted small">{capNote}</p>}
+          {showSetup && (
+            <div className="capture-setup muted small">
+              <p>
+                <strong>iPhone (Shortcuts app):</strong> make a shortcut with two
+                actions —
+              </p>
+              <ol>
+                <li>
+                  <em>Ask for Input</em> (Text) — your brain-dump.
+                </li>
+                <li>
+                  <em>Get Contents of URL</em> —{' '}
+                  <code>https://api.github.com/gists/{gistId || 'YOUR_GIST_ID'}</code>,
+                  Method <code>PATCH</code>, Header{' '}
+                  <code>Authorization: Bearer YOUR_TOKEN</code>, Request Body{' '}
+                  <em>JSON</em>:
+                  <pre>{`{ "files": { "cap_life_[Current Date].txt": { "content": "[Provided Input]" } } }`}</pre>
+                  (put the <em>Current Date</em> and <em>Provided Input</em>{' '}
+                  variables where shown; the filename just needs to start with{' '}
+                  <code>cap_life_</code> and be unique.)
+                </li>
+              </ol>
+              <p>
+                Add it to your Home Screen or the Share Sheet. <strong>Android:</strong>{' '}
+                the free <em>HTTP Shortcuts</em> app does the same PATCH. Test it,
+                then watch it appear in Life. Keep the token secret — anyone with
+                it can read this gist.
+              </p>
+            </div>
+          )}
+          <p className="muted small">
+            <button className="link inline" onClick={disconnect}>
+              Turn off sync on this device
+            </button>
+          </p>
+        </div>
       )}
     </div>
   );

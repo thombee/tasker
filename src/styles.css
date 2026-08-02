@@ -135,6 +135,47 @@ body {
   color: #b4531f;
 }
 
+.capture-box {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed var(--soft);
+}
+.capture-toggle {
+  display: block;
+  margin: 0.4rem 0;
+  cursor: pointer;
+}
+.capture-setup {
+  background: var(--soft);
+  border-radius: 8px;
+  padding: 0.6rem 0.8rem;
+  margin: 0.4rem 0;
+}
+.capture-setup ol {
+  margin: 0.3rem 0 0.3rem 1.1rem;
+  padding: 0;
+}
+.capture-setup li {
+  margin: 0.25rem 0;
+}
+.capture-setup code {
+  background: var(--surface);
+  padding: 0.05rem 0.3rem;
+  border-radius: 4px;
+  font-size: 0.85em;
+  word-break: break-all;
+}
+.capture-setup pre {
+  background: var(--surface);
+  border-radius: 6px;
+  padding: 0.5rem;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0.3rem 0;
+  font-size: 0.82em;
+}
+
 button {
   font: inherit;
   cursor: pointer;

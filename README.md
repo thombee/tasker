@@ -175,6 +175,39 @@ on each device only and are never included in Export/Import backups. In the
 desktop app the sync calls route through Electron's main process, so they
 work behind corporate proxies the same way pings and the AI summary do.
 
+### Phone brain-dump → Life (optional)
+
+Once sync is on, your phone can drop a thought **straight into Life's
+Backlog** with one tap — no extra service, it rides the same private gist.
+Each capture is written as its own tiny file in the gist, so a phone write
+can never clobber your task data or another capture; the app drains them
+into the Backlog on its next sync (~10s), then deletes the files.
+
+Set it up on your phone once:
+
+- **iPhone (Shortcuts app):** a two-action shortcut — *Ask for Input*
+  (your thought), then *Get Contents of URL* with
+  `https://api.github.com/gists/<GIST_ID>`, method **PATCH**, header
+  `Authorization: Bearer <TOKEN>`, and a JSON body:
+
+  ```json
+  { "files": { "cap_life_<unique>.txt": { "content": "<your text>" } } }
+  ```
+
+  Use the *Current Date* variable for `<unique>` and the *Provided Input*
+  variable for the content. Add the shortcut to your Home Screen or Share
+  Sheet. **Plan → Sync** shows this recipe with your real gist id filled in,
+  and a **Send test capture** button to prove the round-trip before you build
+  the shortcut.
+- **Android:** the free *HTTP Shortcuts* app makes the same PATCH request.
+
+The filename just has to start with `cap_` and be unique; `cap_work_…`
+routes to Work instead of Life. Only one device should have **"Receive phone
+captures on this device"** enabled (Plan → Sync) so a thought isn't added
+twice — the created Backlog task then syncs to your other devices normally.
+Capture text lives briefly in the gist, so keep it non-sensitive like the
+rest.
+
 ### Journal
 
 The **Journal** view (top-right) lists what you finished, day by day —
