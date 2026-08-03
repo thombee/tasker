@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { emptyState, reducer, Action } from './store';
 import {
+  ancestors,
   findCurrent,
   goalOf,
   isTodayGoal,
@@ -480,5 +481,62 @@ describe('remainingSteps', () => {
     state = apply(state, { type: 'done', id: idOf(state, 'Implement backend') });
     expect(remainingSteps(state, idOf(state, 'Implement backend'))).toBe(0);
     expect(remainingSteps(state, idOf(state, 'BigW Ticket'))).toBe(1);
+  });
+});
+
+describe('ancestors', () => {
+  it('returns the full lineage goal-first, excluding the task itself', () => {
+    const state = buildJourney();
+    const deep = idOf(state, 'Open endpoint file');
+    expect(ancestors(state, deep).map((a) => a.title)).toEqual([
+      'BigW Ticket',
+      'Implement backend',
+    ]);
+  });
+
+  it('is empty for a top-level goal', () => {
+    const state = buildJourney();
+    expect(ancestors(state, idOf(state, 'BigW Ticket'))).toEqual([]);
+  });
+});
+
+describe('doNow', () => {
+  it('inserts a task just ahead of the current one and lands on it', () => {
+    const state = buildJourney();
+    // Current is the deepest first step.
+    expect(findCurrent(state)).toBe(idOf(state, 'Open endpoint file'));
+    const next = apply(state, { type: 'doNow', title: 'grab a coffee first' });
+    expect(findCurrent(next)).toBe(idOf(next, 'grab a coffee first'));
+    // It sits under the same parent as the task it jumped ahead of.
+    const inserted = next.tasks[idOf(next, 'grab a coffee first')];
+    expect(inserted.parentId).toBe(idOf(next, 'Implement backend'));
+    // Finishing it flows back to what we were doing.
+    const after = apply(next, { type: 'done', id: inserted.id });
+    expect(findCurrent(after)).toBe(idOf(after, 'Open endpoint file'));
+  });
+
+  it('with nothing current, becomes a goal at the front', () => {
+    const next = apply(emptyState, { type: 'doNow', title: 'just start something' });
+    expect(findCurrent(next)).toBe(idOf(next, 'just start something'));
+    expect(next.tasks[next.rootIds[0]].title).toBe('just start something');
+  });
+});
+
+describe('answer', () => {
+  it('completes a question-task and keeps the answer', () => {
+    let state = apply(emptyState, { type: 'addGoal', title: 'do pothos need drainage?' });
+    const id = idOf(state, 'do pothos need drainage?');
+    state = apply(state, { type: 'answer', id, text: 'yes — or they root-rot' });
+    expect(state.tasks[id].status).toBe('done');
+    expect(state.tasks[id].answer).toBe('yes — or they root-rot');
+    expect(state.tasks[id].completedAt).not.toBeNull();
+  });
+
+  it('is undoable back to todo', () => {
+    let state = apply(emptyState, { type: 'addGoal', title: 'ship it?' });
+    const id = idOf(state, 'ship it?');
+    state = apply(state, { type: 'answer', id, text: 'not yet' });
+    state = apply(state, { type: 'undo' });
+    expect(state.tasks[id].status).toBe('todo');
   });
 });

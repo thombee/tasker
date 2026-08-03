@@ -103,8 +103,8 @@ you into Focus.
 
 ### Context helpers
 
-Hiding the hierarchy costs you context, so execution mode has four small
-tools for externalized working memory:
+Hiding the hierarchy costs you context, so execution mode has small tools
+for externalized working memory:
 
 - **Goal scratchpad** (`n` or the "notes" link): a free-text notes panel
   scoped to the current *goal*, editable without leaving the current task.
@@ -117,10 +117,22 @@ tools for externalized working memory:
   current task. In the desktop app, a global hotkey
   (**Cmd/Ctrl+Shift+K**) brings the window forward and opens capture from
   anywhere, so an interrupting thought never derails you.
-- **"part of" line**: the current task shows its immediate parent when
-  that adds context beyond the goal name — the one deliberate hierarchy leak.
+- **Do now** (`a` or "do now"): think of something you want to do *this
+  second*? Type it and it becomes the current task immediately, slotted in
+  just ahead of what you were on — which flows right back once you finish.
+  Add-and-start in one move, no trip to Planning.
+- **Lineage breadcrumb**: a deep subtask shows its full path — `BigW Ticket
+  › Section 2 › 2a` — so "2a of *what*?" is never a question. (Replaces the
+  old immediate-parent-only line.)
 - **Recent trail**: your last three finished steps, so re-entry after a
   break means rereading your own momentum instead of reconstructing it.
+
+**Question tasks.** A task phrased as a question (ending in `?`) gets an
+**Answer** button instead of Done: write the answer and it both completes
+the task and keeps the answer as a small knowledge record — shown under the
+question in the Journal, and in its Planning details. Turns "sometimes my
+tasks are just questions I need to answer" into a growing, searchable log
+rather than a checkbox that erases what you found out.
 
 - **Switch goal** (`g` or "switch goal →", shown when another goal has
   work left): moves on to the next goal *without skipping anything* — the
@@ -136,7 +148,8 @@ tools for externalized working memory:
   or pressing "I'm back" resumes.
 
 Keyboard shortcuts in execution mode: `d`/`Enter` done · `b` break down ·
-`s` skip · `z` previous · `n` notes · `c` capture · `g` switch goal.
+`s` skip · `z` previous · `n` notes · `a` do now · `c` capture · `g` switch
+goal.
 
 ### AI summary (optional, free)
 

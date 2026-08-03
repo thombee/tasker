@@ -9,6 +9,7 @@ export interface JournalStep {
   title: string;
   goalTitle: string;
   completedAt: number;
+  answer?: string; // set when this step was a question you answered
 }
 
 export interface DayGroup {
@@ -48,6 +49,7 @@ export function summarizeDays(state: AppState, now = Date.now()): DayGroup[] {
         title: task.title,
         goalTitle: goalOf(state, task.id).title,
         completedAt: task.completedAt,
+        answer: task.answer?.trim() || undefined,
       });
     } else {
       group.finished.push(task.title);

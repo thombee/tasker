@@ -3,6 +3,7 @@ import { completedToday, lastActiveDay } from '../model/journal';
 import { getPhoneTopic, sendParkPingSmart, sendResumePing } from '../model/phonePing';
 import { Action } from '../model/store';
 import {
+  ancestors,
   findCurrent,
   goalOf,
   isTodayGoal,
@@ -35,6 +36,10 @@ export default function ExecutionView({
   const currentId = findCurrent(state);
   const [breakingDown, setBreakingDown] = useState(false);
   const [steps, setSteps] = useState('');
+  const [answering, setAnswering] = useState(false);
+  const [answerText, setAnswerText] = useState('');
+  const [doNowOpen, setDoNowOpen] = useState(false);
+  const [doNowText, setDoNowText] = useState('');
   const [scratchOpen, setScratchOpen] = useState(false);
   const [captureOpen, setCaptureOpen] = useState(false);
   const [captureText, setCaptureText] = useState('');
@@ -67,6 +72,8 @@ export default function ExecutionView({
   useEffect(() => {
     setBreakingDown(false);
     setSteps('');
+    setAnswering(false);
+    setAnswerText('');
     setEditingTitle(false);
   }, [currentId]);
 
@@ -125,8 +132,11 @@ export default function ExecutionView({
         if (e.key === 'Enter' || e.key === 'r') doResume();
         return;
       }
-      if (breakingDown) {
-        if (e.key === 'Escape') setBreakingDown(false);
+      if (breakingDown || answering) {
+        if (e.key === 'Escape') {
+          setBreakingDown(false);
+          setAnswering(false);
+        }
         return;
       }
       if (!current) return;
@@ -137,14 +147,17 @@ export default function ExecutionView({
       else if (e.key === 'n') setScratchOpen((open) => !open);
       else if (e.key === 'g') dispatch({ type: 'nextGoal' });
       else if (e.key === '?') setShowKeys((show) => !show);
-      else if (e.key === 'c') {
+      else if (e.key === 'a') {
+        e.preventDefault();
+        setDoNowOpen(true);
+      } else if (e.key === 'c') {
         e.preventDefault();
         setCaptureOpen(true);
       }
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [current, breakingDown, canUndo, dispatch, state.parked]);
+  }, [current, breakingDown, answering, canUndo, dispatch, state.parked]);
 
   if (state.rootIds.length === 0) {
     return <FirstGoal dispatch={dispatch} />;
@@ -198,6 +211,14 @@ export default function ExecutionView({
   // A parent surfaces when every child is done or skipped — the user decides
   // whether it's really finished (Finished) or under-planned (More steps).
   const isSurfacedParent = current.childIds.length > 0;
+
+  // A leaf task phrased as a question can be *answered* to complete it, keeping
+  // the answer as knowledge.
+  const isQuestion = !isSurfacedParent && current.title.trim().endsWith('?');
+
+  // Full lineage from the goal down to the immediate parent, so a deep subtask
+  // shows what it's part of instead of a bare "2a".
+  const ancestorTrail = ancestors(state, current.id);
   const skippedInside = current.childIds.filter(
     (c) => state.tasks[c].status === 'skipped',
   ).length;
@@ -209,6 +230,24 @@ export default function ExecutionView({
     }
     setBreakingDown(false);
     setSteps('');
+  }
+
+  function submitAnswer() {
+    if (current && answerText.trim()) {
+      dispatch({ type: 'answer', id: current.id, text: answerText });
+      setToast('Answered ✓ — kept in the Journal');
+    }
+    setAnswering(false);
+    setAnswerText('');
+  }
+
+  function submitDoNow() {
+    if (doNowText.trim()) {
+      dispatch({ type: 'doNow', title: doNowText });
+      setToast(`Now: ${doNowText.trim()}`);
+    }
+    setDoNowText('');
+    setDoNowOpen(false);
   }
 
   function doPark() {
@@ -366,8 +405,15 @@ export default function ExecutionView({
           )}
 
           <div className="task-meta">
-            {parent && goal && parent.id !== goal.id && (
-              <p className="muted small">part of: {parent.title}</p>
+            {ancestorTrail.length >= 2 && (
+              <p className="muted small breadcrumb" title="Where this sits">
+                {ancestorTrail.map((a, i) => (
+                  <span key={a.id}>
+                    {i > 0 && <span className="crumb-sep"> › </span>}
+                    {a.title}
+                  </span>
+                ))}
+              </p>
             )}
             {current.estimateMinutes && (
               <p className="muted small">about {current.estimateMinutes} min</p>
@@ -412,6 +458,29 @@ export default function ExecutionView({
                 </button>
               </div>
             </div>
+          ) : answering ? (
+            <div className="breakdown">
+              <p className="muted small">Write the answer — it completes this and is kept.</p>
+              <textarea
+                autoFocus
+                value={answerText}
+                onChange={(e) => setAnswerText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) submitAnswer();
+                  if (e.key === 'Escape') setAnswering(false);
+                }}
+                placeholder={'What did you find out?'}
+                rows={4}
+              />
+              <div className="row">
+                <button className="primary" onClick={submitAnswer}>
+                  Save answer &amp; done
+                </button>
+                <button className="ghost" onClick={() => setAnswering(false)}>
+                  Cancel
+                </button>
+              </div>
+            </div>
           ) : (
             <div className="controls">
               <button
@@ -421,12 +490,18 @@ export default function ExecutionView({
               >
                 ← Previous
               </button>
-              <button
-                className="primary"
-                onClick={() => dispatch({ type: 'done', id: current.id })}
-              >
-                {isSurfacedParent ? '✓ Finished' : 'Done'}
-              </button>
+              {isQuestion ? (
+                <button className="primary" onClick={() => setAnswering(true)}>
+                  Answer
+                </button>
+              ) : (
+                <button
+                  className="primary"
+                  onClick={() => dispatch({ type: 'done', id: current.id })}
+                >
+                  {isSurfacedParent ? '✓ Finished' : 'Done'}
+                </button>
+              )}
               <button className="secondary" onClick={() => setBreakingDown(true)}>
                 {isSurfacedParent ? '+ More steps' : 'Too Daunting'}
               </button>
@@ -496,6 +571,23 @@ export default function ExecutionView({
           </div>
         )}
 
+        {doNowOpen && (
+          <div className="capture">
+            <input
+              autoFocus
+              value={doNowText}
+              onChange={(e) => setDoNowText(e.target.value)}
+              onBlur={() => setDoNowOpen(false)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') submitDoNow();
+                if (e.key === 'Escape') setDoNowOpen(false);
+              }}
+              placeholder="Do this right now — jump straight to it…"
+            />
+            <p className="keys muted">↵ starts it now, then flows back to this</p>
+          </div>
+        )}
+
         {scratchOpen && goal && (
           <div className="scratchpad">
             <p className="label">Notes — {goal.title}</p>
@@ -537,6 +629,14 @@ export default function ExecutionView({
             {goal?.notes ? 'notes •' : 'notes'}
           </button>
           <span className="dot">·</span>
+          <button
+            className="link"
+            title="Add something and do it right now, then flow back here"
+            onClick={() => setDoNowOpen(true)}
+          >
+            do now
+          </button>
+          <span className="dot">·</span>
           <button className="link" onClick={() => setCaptureOpen(true)}>
             capture
           </button>
@@ -572,8 +672,8 @@ export default function ExecutionView({
 
         {showKeys && (
           <p className="keys muted">
-            d done · b break down · s skip · z previous · n notes · c capture · g
-            switch goal · ☾ park
+            d done · b break down · s skip · z previous · n notes · a do now · c
+            capture · g switch goal · ☾ park
           </p>
         )}
         {backupPaused && (

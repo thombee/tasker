@@ -20,6 +20,8 @@ export type Action =
   | { type: 'breakDown'; id: string; titles: string[] }
   | { type: 'capture'; title: string }
   | { type: 'nextGoal' }
+  | { type: 'doNow'; title: string }
+  | { type: 'answer'; id: string; text: string }
   | { type: 'park'; note: string }
   | { type: 'resume' }
   | { type: 'setToday'; goalIds: string[] }
@@ -194,6 +196,62 @@ export function reducer(state: AppState, action: Action): AppState {
         };
       }
       return reducer(next, { type: 'addChild', parentId: inboxId, title });
+    }
+
+    case 'doNow': {
+      // "I want to do this right now": drop a new task in just ahead of the
+      // current one (same level) so the traversal lands on it immediately,
+      // then flows back to what you were doing. With nothing current, it
+      // becomes a goal at the front.
+      const title = action.title.trim();
+      if (!title) return state;
+      const currentId = findCurrent(state);
+      if (!currentId) {
+        const task = newTask(title, null);
+        return keepBacklogLast({
+          ...state,
+          tasks: { ...state.tasks, [task.id]: task },
+          rootIds: [task.id, ...state.rootIds],
+        });
+      }
+      const current = state.tasks[currentId];
+      const task = newTask(title, current.parentId);
+      if (current.parentId && state.tasks[current.parentId]) {
+        const parent = state.tasks[current.parentId];
+        const childIds = [...parent.childIds];
+        childIds.splice(childIds.indexOf(currentId), 0, task.id);
+        return {
+          ...state,
+          tasks: {
+            ...state.tasks,
+            [task.id]: task,
+            [parent.id]: { ...parent, childIds },
+          },
+        };
+      }
+      const rootIds = [...state.rootIds];
+      rootIds.splice(rootIds.indexOf(currentId), 0, task.id);
+      return { ...state, tasks: { ...state.tasks, [task.id]: task }, rootIds };
+    }
+
+    case 'answer': {
+      // Answering a question-task completes it and keeps the answer as a
+      // small piece of knowledge. Undoable like any Done.
+      const task = state.tasks[action.id];
+      if (!task || task.status === 'done') return state;
+      const tasks = {
+        ...state.tasks,
+        [task.id]: {
+          ...task,
+          status: 'done' as TaskStatus,
+          completedAt: Date.now(),
+          answer: action.text.trim(),
+        },
+      };
+      return pushHistory({ ...state, tasks, parked: null }, {
+        kind: 'done',
+        changes: [{ id: task.id, prevStatus: task.status }],
+      });
     }
 
     case 'nextGoal': {

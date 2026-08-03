@@ -1216,3 +1216,22 @@ textarea {
   font: inherit;
   outline: none;
 }
+
+/* Deep-subtask lineage — "2a" of what. */
+.breadcrumb {
+  overflow-wrap: anywhere;
+}
+.crumb-sep {
+  opacity: 0.5;
+  padding: 0 0.1rem;
+}
+
+/* An answered question's answer, kept in the Journal as knowledge. */
+.journal-answer {
+  margin: 0.15rem 0 0.4rem 1.25rem;
+  padding-left: 0.6rem;
+  border-left: 2px solid var(--line);
+  color: var(--muted);
+  font-size: 0.88rem;
+  white-space: pre-wrap;
+}

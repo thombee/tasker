@@ -187,6 +187,11 @@ export default function TreeNode({
             />
             min
           </label>
+          {task.answer && (
+            <p className="muted small node-answer">
+              <strong>answer:</strong> {task.answer}
+            </p>
+          )}
         </div>
       )}
 

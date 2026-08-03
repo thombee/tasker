@@ -66,3 +66,16 @@ export function goalOf(state: AppState, id: string): Task {
   }
   return task;
 }
+
+// The chain of ancestors from the goal down to the immediate parent of `id`
+// (goal first, parent last), excluding `id` itself. Lets a deep subtask show
+// its full lineage — "2a" of *what* — instead of just its nearest parent.
+export function ancestors(state: AppState, id: string): Task[] {
+  const chain: Task[] = [];
+  let task = state.tasks[id];
+  while (task?.parentId && state.tasks[task.parentId]) {
+    task = state.tasks[task.parentId];
+    chain.push(task);
+  }
+  return chain.reverse();
+}

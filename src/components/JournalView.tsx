@@ -144,6 +144,7 @@ export default function JournalView({ state, onOpenPlan }: Props) {
               <li key={step.id}>
                 <span className="journal-check">✓</span> {step.title}
                 <span className="muted journal-goal"> — {step.goalTitle}</span>
+                {step.answer && <p className="journal-answer">{step.answer}</p>}
               </li>
             ))}
           </ul>

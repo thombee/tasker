@@ -11,6 +11,9 @@ export interface Task {
   estimateMinutes: number | null;
   createdAt: number;
   completedAt: number | null;
+  // For tasks that are really questions ("do pothos need drainage?"): the
+  // answer you wrote to complete it. Kept as a small knowledge record.
+  answer?: string;
 }
 
 export interface HistoryEntry {
