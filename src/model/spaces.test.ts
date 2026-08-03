@@ -97,5 +97,57 @@ describe('spaces', () => {
     expect(s.work.rootIds).toEqual([]);
     expect(s.life.rootIds).toEqual([]);
     expect(s.active).toBe('work');
+    expect(s.gripes).toEqual([]);
+  });
+});
+
+describe('gripes', () => {
+  it('adds gripes newest-first and counts open ones', () => {
+    let spaces = apply(emptySpaces, { type: 'addGripe', text: 'printer jams' });
+    spaces = apply(spaces, { type: 'addGripe', text: 'slow VPN' });
+    expect(spaces.gripes.map((g) => g.text)).toEqual(['slow VPN', 'printer jams']);
+    expect(spaces.gripes.every((g) => g.resolvedAt === null)).toBe(true);
+  });
+
+  it('promoting a gripe makes a goal in the chosen space and resolves it', () => {
+    let spaces = apply(emptySpaces, { type: 'addGripe', text: 'kitchen is always messy' });
+    const id = spaces.gripes[0].id;
+    spaces = apply(spaces, { type: 'promoteGripe', id, space: 'life' });
+    const g = spaces.gripes.find((x) => x.id === id)!;
+    expect(g.resolution).toBe('promoted');
+    expect(g.resolvedAt).not.toBeNull();
+    // A matching goal now exists in Life, and Work is untouched.
+    expect(Object.values(spaces.life.tasks).map((t) => t.title)).toContain(
+      'kitchen is always messy',
+    );
+    expect(Object.keys(spaces.work.tasks)).toHaveLength(0);
+  });
+
+  it('letting a gripe go resolves without creating any task', () => {
+    let spaces = apply(emptySpaces, { type: 'addGripe', text: 'traffic' });
+    const id = spaces.gripes[0].id;
+    spaces = apply(spaces, { type: 'letGoGripe', id });
+    expect(spaces.gripes[0].resolution).toBe('letgo');
+    expect(Object.keys(spaces.life.tasks)).toHaveLength(0);
+    expect(Object.keys(spaces.work.tasks)).toHaveLength(0);
+  });
+
+  it('clearResolvedGripes keeps only open gripes', () => {
+    let spaces = apply(
+      emptySpaces,
+      { type: 'addGripe', text: 'a' },
+      { type: 'addGripe', text: 'b' },
+    );
+    const first = spaces.gripes[0].id;
+    spaces = apply(spaces, { type: 'letGoGripe', id: first });
+    spaces = apply(spaces, { type: 'clearResolvedGripes' });
+    expect(spaces.gripes).toHaveLength(1);
+    expect(spaces.gripes[0].resolvedAt).toBeNull();
+  });
+
+  it('gripes survive a switchSpace (they live above the split)', () => {
+    let spaces = apply(emptySpaces, { type: 'addGripe', text: 'x' });
+    spaces = apply(spaces, { type: 'switchSpace', space: 'life' });
+    expect(spaces.gripes).toHaveLength(1);
   });
 });

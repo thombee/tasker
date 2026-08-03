@@ -203,6 +203,22 @@ button:disabled {
 .topnav {
   display: flex;
   gap: 0.15rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.nav-badge {
+  display: inline-block;
+  margin-left: 0.3rem;
+  min-width: 1.05rem;
+  padding: 0 0.25rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  line-height: 1.05rem;
+  text-align: center;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  color: var(--accent);
 }
 
 /* Every section is always visible; the current one is clearly marked, so
@@ -1116,4 +1132,87 @@ textarea {
 
 .journal-goal {
   font-size: 0.8rem;
+}
+
+/* --- Gripes: the everyday-friction log --- */
+.gripe-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.gripe {
+  background: var(--surface);
+  border-radius: 10px;
+  padding: 0.6rem 0.8rem;
+  box-shadow: var(--shadow);
+}
+.gripe-text {
+  font-size: 0.98rem;
+}
+.gripe-meta {
+  margin-top: 0.15rem;
+}
+.gripe-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+}
+.gripe.is-resolved {
+  opacity: 0.6;
+  box-shadow: none;
+  background: var(--soft);
+}
+.gripe-resolved {
+  margin-top: 1rem;
+}
+.ghost.small,
+.muted.small {
+  font-size: 0.8rem;
+}
+.ghost.small {
+  padding: 0.15rem 0.55rem;
+}
+
+/* Floating global gripe capture — present in every mode. */
+.quick-gripe {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 40;
+}
+.quick-gripe-fab {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 999px;
+  font-size: 1.3rem;
+  background: var(--surface);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.quick-gripe-fab:hover {
+  transform: translateY(-1px);
+}
+.quick-gripe-fab.flash {
+  color: var(--accent);
+}
+.quick-gripe-box {
+  background: var(--surface);
+  border-radius: 999px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16);
+  padding: 0.25rem;
+}
+.quick-gripe-box input {
+  width: min(70vw, 20rem);
+  border: none;
+  background: transparent;
+  padding: 0.5rem 0.9rem;
+  font: inherit;
+  outline: none;
 }

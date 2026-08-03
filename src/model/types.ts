@@ -18,6 +18,19 @@ export interface HistoryEntry {
   changes: { id: string; prevStatus: TaskStatus }[];
 }
 
+// A captured complaint / friction point. Lives above the Work/Life split so a
+// gripe can be logged from anywhere, then reviewed: promoted into a goal to
+// solve, or consciously let go. Never silently deleted.
+export interface Gripe {
+  id: string;
+  text: string;
+  createdAt: number;
+  // null while open; set when resolved. 'promoted' → became a goal, 'letgo' →
+  // deliberately dropped.
+  resolvedAt: number | null;
+  resolution: 'promoted' | 'letgo' | null;
+}
+
 export interface AppState {
   tasks: Record<string, Task>;
   rootIds: string[];

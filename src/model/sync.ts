@@ -8,7 +8,7 @@
 // Export/Import backup), the same as the Groq key and phone topic.
 
 import { emptyState } from './store';
-import { AppState } from './types';
+import { AppState, Gripe } from './types';
 
 const CONFIG_KEY = 'tasker.sync.v1';
 const BASE_KEY = 'tasker.sync.base.v1';
@@ -29,21 +29,32 @@ export interface SyncConfig {
 export interface Capture {
   name: string;
   text: string;
-  space: 'work' | 'life';
+  kind: 'task' | 'gripe';
+  space: 'work' | 'life'; // only meaningful when kind === 'task'
 }
 
-// Filenames may carry an optional space hint: `cap_work_…` / `cap_life_…`.
-// Anything else defaults to Life, which is where brain-dumps go.
-function captureSpace(name: string): 'work' | 'life' {
+// Filenames carry a routing hint: `cap_gripe_…` → the gripe log; `cap_work_…`
+// → Work's Backlog; anything else (incl. `cap_life_…`) → Life's Backlog.
+function captureRoute(name: string): { kind: 'task' | 'gripe'; space: 'work' | 'life' } {
   const rest = name.slice(CAPTURE_PREFIX.length).toLowerCase();
-  if (rest.startsWith('work_') || rest.startsWith('w_')) return 'work';
-  return 'life';
+  if (rest.startsWith('gripe_') || rest.startsWith('g_')) return { kind: 'gripe', space: 'life' };
+  if (rest.startsWith('work_') || rest.startsWith('w_')) return { kind: 'task', space: 'work' };
+  return { kind: 'task', space: 'life' };
+}
+
+// The task data the sync store carries: both spaces plus the shared gripe log.
+// gripes is optional so older payloads (and lean callers) still type-check;
+// it defaults to [] everywhere it's read or written.
+export interface SyncedSpaces {
+  work: AppState;
+  life: AppState;
+  gripes?: Gripe[];
 }
 
 export interface RemotePayload {
   v: number;
   updatedAt: number;
-  spaces: { work: AppState; life: AppState };
+  spaces: SyncedSpaces;
 }
 
 export function getSyncConfig(): SyncConfig {
@@ -127,9 +138,13 @@ export function setCaptureEnabled(on: boolean): void {
 
 // Stable serialization of just the task data (not `active`, a device-local
 // view preference) so two devices can compare content regardless of which
-// space each is looking at.
-export function serializeSpaces(spaces: { work: AppState; life: AppState }): string {
-  return JSON.stringify({ work: spaces.work, life: spaces.life });
+// space each is looking at. Includes the shared gripe log.
+export function serializeSpaces(spaces: SyncedSpaces): string {
+  return JSON.stringify({
+    work: spaces.work,
+    life: spaces.life,
+    gripes: spaces.gripes ?? [],
+  });
 }
 
 interface ApiResp {
@@ -213,7 +228,7 @@ export async function readRemote(cfg: SyncConfig): Promise<ReadResult> {
     for (const name of Object.keys(files)) {
       if (!name.startsWith(CAPTURE_PREFIX)) continue;
       const text = (await fileContent(files[name], cfg.token)).trim();
-      if (text) captures.push({ name, text, space: captureSpace(name) });
+      if (text) captures.push({ name, text, ...captureRoute(name) });
     }
 
     const file = files[GIST_FILE];
@@ -249,15 +264,16 @@ export async function deleteCaptures(
 }
 
 // Add a capture file (used by the in-app "send test capture", and the exact
-// shape a phone Shortcut writes). Space defaults to Life.
+// shape a phone Shortcut writes). `route` picks the destination: a Backlog
+// space, or the shared gripe log.
 export async function postCapture(
   cfg: SyncConfig,
   text: string,
-  space: 'work' | 'life' = 'life',
+  route: 'work' | 'life' | 'gripe' = 'life',
 ): Promise<{ ok: boolean; error?: string }> {
   try {
     const rand = Math.random().toString(36).slice(2, 7);
-    const name = `${CAPTURE_PREFIX}${space}_${Date.now()}_${rand}.txt`;
+    const name = `${CAPTURE_PREFIX}${route}_${Date.now()}_${rand}.txt`;
     const body = JSON.stringify({ files: { [name]: { content: text } } });
     const r = await api('PATCH', `/gists/${cfg.gistId}`, cfg.token, body);
     if (r.status < 200 || r.status >= 300) return { ok: false, error: errorFrom(r) };
@@ -275,14 +291,14 @@ export interface WriteResult {
 
 export async function writeRemote(
   cfg: SyncConfig,
-  spaces: { work: AppState; life: AppState },
+  spaces: SyncedSpaces,
 ): Promise<WriteResult> {
   try {
     const updatedAt = Date.now();
     const payload: RemotePayload = {
       v: PAYLOAD_VERSION,
       updatedAt,
-      spaces: { work: spaces.work, life: spaces.life },
+      spaces: { work: spaces.work, life: spaces.life, gripes: spaces.gripes ?? [] },
     };
     const body = JSON.stringify({
       files: { [GIST_FILE]: { content: JSON.stringify(payload) } },
@@ -305,13 +321,13 @@ export interface CreateResult {
 // device that sets up sync keeps everything it already has.
 export async function createGist(
   token: string,
-  spaces: { work: AppState; life: AppState },
+  spaces: SyncedSpaces,
 ): Promise<CreateResult> {
   try {
     const payload: RemotePayload = {
       v: PAYLOAD_VERSION,
       updatedAt: Date.now(),
-      spaces: { work: spaces.work, life: spaces.life },
+      spaces: { work: spaces.work, life: spaces.life, gripes: spaces.gripes ?? [] },
     };
     const body = JSON.stringify({
       description: 'tasker sync (private) — your task data across devices',

@@ -9,6 +9,7 @@ import {
 } from '../model/phonePing';
 import { SyncState } from '../hooks/useGistSync';
 import { Action } from '../model/store';
+import { SyncedSpaces } from '../model/sync';
 import { AppState } from '../model/types';
 import SyncSettings from './SyncSettings';
 import TreeNode from './TreeNode';
@@ -21,7 +22,7 @@ interface Props {
   otherSpaceLabel: string;
   onMoveGoalToSpace: (id: string) => void;
   syncState: SyncState;
-  spacesData: { work: AppState; life: AppState };
+  spacesData: SyncedSpaces;
   onSyncConfigChanged: () => void;
 }
 

@@ -4,11 +4,13 @@ import { findCurrent } from './model/traversal';
 import { useFileBackup } from './hooks/useFileBackup';
 import { useGistSync } from './hooks/useGistSync';
 import ExecutionView from './components/ExecutionView';
+import GripesView from './components/GripesView';
 import JournalView from './components/JournalView';
 import PlanningView from './components/PlanningView';
+import QuickGripe from './components/QuickGripe';
 import TodayView from './components/TodayView';
 
-type Mode = 'execute' | 'plan' | 'journal' | 'today';
+type Mode = 'execute' | 'plan' | 'journal' | 'today' | 'gripes';
 
 const SPACE_LABEL: Record<SpaceId, string> = { work: 'Work', life: 'Life' };
 
@@ -49,8 +51,11 @@ export default function App() {
     { id: 'execute', label: 'Focus' },
     { id: 'today', label: 'Today' },
     { id: 'journal', label: 'Journal' },
+    { id: 'gripes', label: 'Gripes' },
     { id: 'plan', label: 'Plan' },
   ];
+
+  const openGripeCount = spaces.gripes.filter((g) => g.resolvedAt === null).length;
 
   function startGoal(id: string) {
     dispatch({ type: 'startGoal', id });
@@ -108,6 +113,9 @@ export default function App() {
               onClick={() => setMode(item.id)}
             >
               {item.label}
+              {item.id === 'gripes' && openGripeCount > 0 && (
+                <span className="nav-badge">{openGripeCount}</span>
+              )}
             </button>
           ))}
         </nav>
@@ -138,14 +146,19 @@ export default function App() {
             otherSpaceLabel={SPACE_LABEL[otherSpace]}
             onMoveGoalToSpace={(id) => dispatch({ type: 'moveGoalToSpace', id, to: otherSpace })}
             syncState={syncState}
-            spacesData={{ work: spaces.work, life: spaces.life }}
+            spacesData={{ work: spaces.work, life: spaces.life, gripes: spaces.gripes }}
             onSyncConfigChanged={() => setSyncConfigVersion((v) => v + 1)}
           />
         )}
         {mode === 'journal' && (
           <JournalView state={state} onOpenPlan={() => setMode('plan')} />
         )}
+        {mode === 'gripes' && (
+          <GripesView gripes={spaces.gripes} dispatch={dispatch} spaceLabel={SPACE_LABEL} />
+        )}
       </div>
+
+      {mode !== 'gripes' && <QuickGripe dispatch={dispatch} />}
     </div>
   );
 }

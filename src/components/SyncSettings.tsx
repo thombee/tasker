@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { SyncState } from '../hooks/useGistSync';
-import { AppState } from '../model/types';
 import {
   captureEnabled,
   clearSync,
@@ -9,11 +8,12 @@ import {
   postCapture,
   saveSyncConfig,
   setCaptureEnabled,
+  SyncedSpaces,
 } from '../model/sync';
 
 interface Props {
   syncState: SyncState;
-  spacesData: { work: AppState; life: AppState };
+  spacesData: SyncedSpaces;
   onChanged: () => void;
 }
 

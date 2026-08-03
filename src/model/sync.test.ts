@@ -179,6 +179,26 @@ describe('gist API round-trip', () => {
     expect(after.captures ?? []).toHaveLength(0);
     expect(after.payload?.spaces.work.rootIds).toEqual(['w']);
   });
+
+  it('routes a cap_gripe_ file to the gripe log, not a Backlog', async () => {
+    const gistId = (await createGist(TOKEN, { work: emptyState, life: emptyState })).gistId!;
+    const cfg = { token: TOKEN, gistId };
+    await postCapture(cfg, 'the fridge hums', 'gripe');
+    const read = await readRemote(cfg);
+    expect(read.captures).toHaveLength(1);
+    expect(read.captures![0].kind).toBe('gripe');
+    expect(read.captures![0].text).toBe('the fridge hums');
+  });
+
+  it('round-trips gripes through the synced payload', async () => {
+    const gripes = [
+      { id: 'g1', text: 'slow lifts', createdAt: 1, resolvedAt: null, resolution: null },
+    ];
+    const gistId = (await createGist(TOKEN, { work: emptyState, life: emptyState, gripes }))
+      .gistId!;
+    const read = await readRemote({ token: TOKEN, gistId });
+    expect(read.payload?.spaces.gripes).toEqual(gripes);
+  });
 });
 
 describe('config + base persistence', () => {

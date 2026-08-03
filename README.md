@@ -202,11 +202,29 @@ Set it up on your phone once:
 - **Android:** the free *HTTP Shortcuts* app makes the same PATCH request.
 
 The filename just has to start with `cap_` and be unique; `cap_work_…`
-routes to Work instead of Life. Only one device should have **"Receive phone
+routes to Work's Backlog and `cap_gripe_…` routes to the Gripes log (instead
+of the default, Life's Backlog). Only one device should have **"Receive phone
 captures on this device"** enabled (Plan → Sync) so a thought isn't added
 twice — the created Backlog task then syncs to your other devices normally.
 Capture text lives briefly in the gist, so keep it non-sensitive like the
 rest.
+
+### Gripes — the everyday-friction log
+
+A place for complaints. Naming a nagging annoyance gets it out of your head
+(the same rumination-relief principle as parking a task), and later you
+either **turn it into a goal to fix** or **let it go on purpose** — nothing
+rots silently in a list. Gripes live *above* the Work/Life split (one shared
+log) so you can dump one from any context.
+
+- **Capture from anywhere:** a floating 🗯 button in every mode (one tap →
+  type → Enter), a **Log it** box in the Gripes view, and from your phone via
+  a `cap_gripe_…` capture file (same shortcut recipe as the brain-dump, just
+  the different prefix). The nav shows a count of open gripes.
+- **Review:** each open gripe offers **solve in Life / Work** — which spins up
+  a goal from it in that space and marks the gripe promoted — or **let it
+  go**. Resolved ones fold into a collapsed list you can clear.
+- Gripes ride the same sync gist, so they show up on every device.
 
 ### Journal
 

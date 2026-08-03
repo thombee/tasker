@@ -7,6 +7,7 @@ import {
   getSyncBase,
   getSyncConfig,
   readRemote,
+  RemotePayload,
   saveSyncBase,
   serializeSpaces,
   SyncConfig,
@@ -67,7 +68,8 @@ export function useGistSync(
       for (const c of fresh) {
         drainedRef.current.add(c.name);
         pendingDeleteRef.current.add(c.name);
-        dispatch({ type: 'captureTo', space: c.space, title: c.text });
+        if (c.kind === 'gripe') dispatch({ type: 'addGripe', text: c.text });
+        else dispatch({ type: 'captureTo', space: c.space, title: c.text });
       }
       // Retry any outstanding deletes (including this batch). Tasks are never
       // re-created — only the file cleanup is retried.
@@ -80,7 +82,7 @@ export function useGistSync(
   );
 
   const applyRemote = useCallback(
-    (payload: { updatedAt: number; spaces: { work: Spaces['work']; life: Spaces['life'] } }) => {
+    (payload: RemotePayload) => {
       const content = serializeSpaces(payload.spaces);
       syncedContentRef.current = content;
       saveSyncBase(payload.updatedAt);
@@ -90,6 +92,7 @@ export function useGistSync(
         spaces: {
           work: payload.spaces.work,
           life: payload.spaces.life,
+          gripes: payload.spaces.gripes ?? [],
           active: spacesRef.current.active,
         },
       });

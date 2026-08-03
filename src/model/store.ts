@@ -1,6 +1,6 @@
 import { dayKey } from './dates';
 import { findCurrent, goalOf } from './traversal';
-import { AppState, HistoryEntry, Task, TaskStatus } from './types';
+import { AppState, Gripe, HistoryEntry, Task, TaskStatus } from './types';
 
 const STORAGE_KEY = 'tasker.state.v1';
 const HISTORY_LIMIT = 100;
@@ -519,6 +519,9 @@ export interface Spaces {
   work: AppState;
   life: AppState;
   active: SpaceId;
+  // Complaints/friction log, shared across both spaces — captured from
+  // anywhere, reviewed later.
+  gripes: Gripe[];
 }
 
 export type TopAction =
@@ -526,13 +529,28 @@ export type TopAction =
   | { type: 'switchSpace'; space: SpaceId }
   | { type: 'moveGoalToSpace'; id: string; to: SpaceId }
   | { type: 'captureTo'; space: SpaceId; title: string }
+  | { type: 'addGripe'; text: string }
+  | { type: 'letGoGripe'; id: string }
+  | { type: 'promoteGripe'; id: string; space: SpaceId }
+  | { type: 'clearResolvedGripes' }
   | { type: 'hydrateSpaces'; spaces: Spaces };
 
 export const emptySpaces: Spaces = {
   work: emptyState,
   life: emptyState,
   active: 'work',
+  gripes: [],
 };
+
+function newGripe(text: string): Gripe {
+  return {
+    id: crypto.randomUUID(),
+    text: text.trim(),
+    createdAt: Date.now(),
+    resolvedAt: null,
+    resolution: null,
+  };
+}
 
 // Move a whole goal subtree from the active space into the other one.
 function moveGoalBetween(spaces: Spaces, id: string, to: SpaceId): Spaces {
@@ -601,6 +619,39 @@ export function topReducer(spaces: Spaces, action: TopAction): Spaces {
           title: action.title,
         }),
       };
+    case 'addGripe': {
+      if (!action.text.trim()) return spaces;
+      return { ...spaces, gripes: [newGripe(action.text), ...spaces.gripes] };
+    }
+    case 'letGoGripe':
+      return {
+        ...spaces,
+        gripes: spaces.gripes.map((g) =>
+          g.id === action.id
+            ? { ...g, resolvedAt: Date.now(), resolution: 'letgo' }
+            : g,
+        ),
+      };
+    case 'promoteGripe': {
+      const gripe = spaces.gripes.find((g) => g.id === action.id);
+      if (!gripe) return spaces;
+      // Turn the complaint into a goal to solve, in the chosen space.
+      const target = reducer(spaces[action.space], {
+        type: 'addGoal',
+        title: gripe.text,
+      });
+      return {
+        ...spaces,
+        [action.space]: target,
+        gripes: spaces.gripes.map((g) =>
+          g.id === action.id
+            ? { ...g, resolvedAt: Date.now(), resolution: 'promoted' }
+            : g,
+        ),
+      };
+    }
+    case 'clearResolvedGripes':
+      return { ...spaces, gripes: spaces.gripes.filter((g) => g.resolvedAt === null) };
     default:
       return {
         ...spaces,
@@ -617,12 +668,31 @@ function coerceState(raw: unknown): AppState {
   }
 }
 
+function coerceGripes(raw: unknown): Gripe[] {
+  if (!Array.isArray(raw)) return [];
+  const out: Gripe[] = [];
+  for (const g of raw) {
+    if (g && typeof g.id === 'string' && typeof g.text === 'string') {
+      out.push({
+        id: g.id,
+        text: g.text,
+        createdAt: typeof g.createdAt === 'number' ? g.createdAt : Date.now(),
+        resolvedAt: typeof g.resolvedAt === 'number' ? g.resolvedAt : null,
+        resolution:
+          g.resolution === 'promoted' || g.resolution === 'letgo' ? g.resolution : null,
+      });
+    }
+  }
+  return out;
+}
+
 export function sanitizeSpaces(raw: unknown): Spaces {
   const s = (raw ?? {}) as Partial<Spaces>;
   return {
     work: coerceState(s.work),
     life: coerceState(s.life),
     active: s.active === 'life' ? 'life' : 'work',
+    gripes: coerceGripes(s.gripes),
   };
 }
 
@@ -636,7 +706,7 @@ export function loadSpaces(): Spaces {
   // First run on the spaces model: fold any existing single-tree data into
   // Work (that's where the heaviest use has been), leaving Life empty.
   const old = loadState();
-  if (old) return { work: old, life: emptyState, active: 'work' };
+  if (old) return { work: old, life: emptyState, active: 'work', gripes: [] };
   return emptySpaces;
 }
 
