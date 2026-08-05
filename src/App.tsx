@@ -1,6 +1,7 @@
 import { useEffect, useReducer, useState } from 'react';
 import { loadSpaces, saveSpaces, SpaceId, topReducer } from './model/store';
 import { findCurrent } from './model/traversal';
+import { useCheckins } from './hooks/useCheckins';
 import { useFileBackup } from './hooks/useFileBackup';
 import { useGistSync } from './hooks/useGistSync';
 import ExecutionView from './components/ExecutionView';
@@ -8,6 +9,7 @@ import GripesView from './components/GripesView';
 import JournalView from './components/JournalView';
 import PlanningView from './components/PlanningView';
 import QuickGripe from './components/QuickGripe';
+import ResetOverlay from './components/ResetOverlay';
 import TodayView from './components/TodayView';
 
 type Mode = 'execute' | 'plan' | 'journal' | 'today' | 'gripes';
@@ -20,8 +22,10 @@ export default function App() {
   const [mode, setMode] = useState<Mode>('execute');
   const [pendingCapture, setPendingCapture] = useState(false);
   const [syncConfigVersion, setSyncConfigVersion] = useState(0);
+  const [resetOpen, setResetOpen] = useState(false);
   const backup = useFileBackup(state);
   const syncState = useGistSync(spaces, dispatch, syncConfigVersion);
+  const checkin = useCheckins(state);
 
   useEffect(() => {
     saveSpaces(spaces);
@@ -121,6 +125,26 @@ export default function App() {
         </nav>
       </header>
 
+      {checkin.nudging && (
+        <div className="checkin-banner">
+          <span>a gentle check-in 🌿 — still centred, or time to reset?</span>
+          <div className="checkin-actions">
+            <button
+              className="link"
+              onClick={() => {
+                setResetOpen(true);
+                checkin.dismiss();
+              }}
+            >
+              reset / I'm stuck
+            </button>
+            <button className="link" onClick={checkin.dismiss}>
+              I'm good
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Keyed wrapper so each section fades in — softer than a hard cut. */}
       <div className="mode-content" key={mode}>
         {mode === 'execute' && (
@@ -132,6 +156,7 @@ export default function App() {
             backupPaused={backup.status === 'paused'}
             pendingCapture={pendingCapture}
             onCaptureConsumed={() => setPendingCapture(false)}
+            onOpenReset={() => setResetOpen(true)}
           />
         )}
         {mode === 'today' && (
@@ -159,6 +184,8 @@ export default function App() {
       </div>
 
       {mode !== 'gripes' && <QuickGripe dispatch={dispatch} />}
+
+      <ResetOverlay open={resetOpen} state={state} onClose={() => setResetOpen(false)} />
     </div>
   );
 }

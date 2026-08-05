@@ -239,6 +239,28 @@ log) so you can dump one from any context.
   go**. Resolved ones fold into a collapsed list you can clear.
 - Gripes ride the same sync gist, so they show up on every device.
 
+### Reset — catching a slump (optional)
+
+Working from home strips away the ambient cues that catch a drift, and ADHD
+time-blindness means a slump is invisible from the inside. So this isn't a
+get-back-to-work bark — bark and you deepen the spiral. It's **permission to
+centre yourself**, on the principle that a settled brain does the rest.
+
+- **Gentle check-ins** (Plan → *Gentle check-ins*): when you go quiet for a
+  while — nothing finished for N minutes — tasker sends a warm nudge **to
+  your phone** (reusing your ntfy topic) and shows a soft, dismissible banner.
+  It stays silent while you're actively finishing steps (flow is never
+  interrupted) and while you're parked. Configure the idle window, or turn it
+  off entirely.
+- **The Reset screen** (the **reset** link in Focus, or the banner): a calm
+  full-screen that gives you *permission* — "a clear head is the work; the
+  rest follows; no rush." From there you can **take a real reset** (pick a
+  centering activity — tidy one thing, breathe, step outside, or your own list
+  — with a timer so you don't watch the clock), then it eases you back to your
+  single next microtask. No guilt, no to-do list.
+- Your **reset options are yours to edit** (Plan) — clean the room, meditate,
+  a walk, whatever actually settles you.
+
 ### Journal
 
 The **Journal** view (top-right) lists what you finished, day by day —

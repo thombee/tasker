@@ -8,6 +8,12 @@ import {
   sendParkPingSmart,
 } from '../model/phonePing';
 import { SyncState } from '../hooks/useGistSync';
+import {
+  getCheckinSettings,
+  getResetActivities,
+  saveCheckinSettings,
+  saveResetActivities,
+} from '../model/checkins';
 import { Action } from '../model/store';
 import { SyncedSpaces } from '../model/sync';
 import { AppState } from '../model/types';
@@ -42,6 +48,9 @@ export default function PlanningView({
   const [pingStatus, setPingStatus] = useState<string | null>(null);
   const [groqKey, setGroqKey] = useState(getGroqKey);
   const [groqStatus, setGroqStatus] = useState<string | null>(null);
+  const [checkinOn, setCheckinOn] = useState(() => getCheckinSettings().enabled);
+  const [idleMin, setIdleMin] = useState(() => getCheckinSettings().idleMin);
+  const [activities, setActivities] = useState(() => getResetActivities().join('\n'));
   const fileRef = useRef<HTMLInputElement>(null);
 
   async function testGroqKey() {
@@ -237,6 +246,57 @@ export default function PlanningView({
           )}
         </div>
         {pingStatus && <p className="muted small">{pingStatus}</p>}
+      </div>
+
+      <div className="backup-section">
+        <p className="muted small">
+          Gentle check-ins (optional): when you go quiet for a while, tasker
+          nudges you — <strong>to your phone</strong> if you set a topic above —
+          with <em>permission to reset</em>, not pressure to perform. It stays
+          silent while you're actively finishing steps, and never while parked.
+          The <strong>reset</strong> link in Focus opens the same calm screen
+          anytime you feel yourself slipping.
+        </p>
+        <label className="capture-toggle small">
+          <input
+            type="checkbox"
+            checked={checkinOn}
+            onChange={(e) => {
+              setCheckinOn(e.target.checked);
+              saveCheckinSettings({ enabled: e.target.checked, idleMin });
+            }}
+          />{' '}
+          Nudge me when I've gone quiet
+        </label>
+        <label className="muted small" style={{ display: 'block', marginTop: '0.3rem' }}>
+          after{' '}
+          <input
+            type="number"
+            min={1}
+            value={idleMin}
+            style={{ width: '3.5rem' }}
+            onChange={(e) => {
+              const v = Number(e.target.value) || 1;
+              setIdleMin(v);
+              saveCheckinSettings({ enabled: checkinOn, idleMin: v });
+            }}
+          />{' '}
+          minutes of quiet (and again that often while you stay quiet)
+        </label>
+        <p className="muted small" style={{ marginTop: '0.6rem' }}>
+          Your reset options — clean the room, meditate, a walk, whatever
+          actually centres you (one per line):
+        </p>
+        <textarea
+          value={activities}
+          rows={4}
+          onChange={(e) => {
+            setActivities(e.target.value);
+            saveResetActivities(e.target.value.split('\n'));
+          }}
+          placeholder={'Tidy one thing\nStep outside\nMeditate or just breathe'}
+          style={{ width: '100%' }}
+        />
       </div>
 
       <div className="backup-section">

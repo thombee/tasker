@@ -22,6 +22,7 @@ interface Props {
   backupPaused: boolean;
   pendingCapture: boolean;
   onCaptureConsumed: () => void;
+  onOpenReset: () => void;
 }
 
 export default function ExecutionView({
@@ -32,6 +33,7 @@ export default function ExecutionView({
   backupPaused,
   pendingCapture,
   onCaptureConsumed,
+  onOpenReset,
 }: Props) {
   const currentId = findCurrent(state);
   const [breakingDown, setBreakingDown] = useState(false);
@@ -647,6 +649,14 @@ export default function ExecutionView({
             onClick={() => setParkOpen(true)}
           >
             park
+          </button>
+          <span className="dot">·</span>
+          <button
+            className="link"
+            title="Spiralling or stuck? A calm reset — you're allowed to centre yourself"
+            onClick={onOpenReset}
+          >
+            reset
           </button>
           {canSwitchGoal && (
             <>

@@ -1235,3 +1235,116 @@ textarea {
   font-size: 0.88rem;
   white-space: pre-wrap;
 }
+
+/* --- Gentle check-in banner --- */
+.checkin-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  border-radius: 12px;
+  padding: 0.55rem 0.85rem;
+  margin: 0.6rem 0 0;
+  font-size: 0.9rem;
+  animation: mode-in 0.25s ease;
+}
+.checkin-actions {
+  display: flex;
+  gap: 0.3rem;
+}
+
+/* --- Reset overlay: the calm centring screen --- */
+.reset-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  animation: mode-in 0.25s ease;
+  overflow-y: auto;
+}
+.reset-inner {
+  max-width: 30rem;
+  width: 100%;
+  text-align: center;
+}
+.reset-inner h1 {
+  font-size: clamp(1.8rem, 6vw, 2.4rem);
+  margin: 0.3rem 0 0.6rem;
+}
+.reset-mark {
+  font-size: 2.4rem;
+}
+.reset-permission {
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1.6;
+  margin: 0.4rem auto 1.2rem;
+  max-width: 24rem;
+}
+.reset-section {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 1rem 1.1rem;
+  margin: 0.8rem 0;
+  box-shadow: var(--shadow);
+}
+.reset-section .label {
+  margin-bottom: 0.5rem;
+}
+.reset-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  justify-content: center;
+  margin: 0.5rem 0;
+}
+.reset-chip {
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
+  background: var(--soft);
+  color: var(--ink);
+  font-size: 0.88rem;
+}
+.reset-chip.on {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.reset-times {
+  display: flex;
+  gap: 0.4rem;
+  justify-content: center;
+  margin-top: 0.5rem;
+}
+.reset-times .ghost {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.reset-count {
+  font-size: clamp(3rem, 14vw, 4.5rem);
+  font-weight: 300;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  margin: 0.5rem 0;
+}
+.reset-next {
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin: 0.5rem 0 1rem;
+}
+.reset-close {
+  margin-top: 0.8rem;
+}
+.reset-section .primary {
+  margin-top: 0.6rem;
+  padding: 0.6rem 1.2rem;
+  border-radius: 13px;
+}

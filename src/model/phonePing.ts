@@ -138,6 +138,25 @@ export async function sendResumePing(topic: string, nextStep: string): Promise<P
   );
 }
 
+// A gentle "come centre yourself" nudge — permission-first, never a
+// get-back-to-work bark. Reaches the phone so it catches a drift wherever it
+// happens.
+export async function sendCheckinPing(
+  topic: string,
+  nextStep: string,
+): Promise<PingResult> {
+  return withAuthRetry(topic, () =>
+    sendPing(
+      buildPing(
+        topic,
+        'checking in',
+        `still centred? the next tiny thing is: ${nextStep}. or take a real reset — that counts too. no rush.`,
+        { tags: 'seedling' },
+      ),
+    ),
+  );
+}
+
 // Shared auto-reauth: when a corporate filter answers with its sign-in
 // page and we're in the desktop app, open the sign-in window (usually
 // auto-completes and closes itself), then retry once.
